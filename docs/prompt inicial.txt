@@ -1,0 +1,94 @@
+Prompt para desarrollo de aplicación de gestión de pulseras TGH
+Objetivo: Desarrollar una aplicación web completa utilizando React para el frontend, Next.js para el backend y MySQL para la base de datos. La aplicación debe gestionar la activación, carga y visualización de datos de pulseras con chips NFC. El sistema debe diferenciar claramente entre el acceso público de emergencia y el acceso privado del usuario.
+
+Requisitos del Frontend (React)
+El frontend se desarrollará con React para crear una interfaz de usuario dinámica y responsiva.
+
+Página de Activación:
+
+Un componente de React que contenga un formulario para ingresar el número de serie (serial) del chip NFC.
+
+Validación en tiempo real para el formato del serial.
+
+Manejo de estados para mostrar mensajes de éxito o error (ej. "Serial no válido", "Serial ya activado").
+
+Página de Registro:
+
+Un formulario React para la creación de usuario y contraseña.
+
+Inclusión de un checkbox para la aceptación de términos y condiciones y políticas de privacidad.
+
+Dashboard Personal (Planilla):
+
+Un conjunto de componentes de React para gestionar la carga de datos del usuario.
+
+Carga de archivos: Componentes para subir una foto tipo carnet y un certificado de grupo sanguíneo. Se debe incluir una vista previa de la foto.
+
+Formularios: Formularios controlados para ingresar datos personales y vitales.
+
+Contactos de emergencia: Un componente dinámico que permita agregar múltiples teléfonos de contacto, con validación de formato numérico y la funcionalidad de llamada directa en dispositivos móviles (usando tel:).
+
+Página de Vista Pública (NFC):
+
+Un componente de React que cargue la información vital y los contactos de emergencia, optimizado para una carga rápida y visualización en móviles. No debe incluir elementos de edición.
+
+Gestión de Rutas: Usar React Router o similar para una navegación fluida entre las páginas.
+
+Requisitos del Backend (Next.js y MySQL)
+El backend se construirá con Next.js aprovechando sus API Routes para gestionar las operaciones del servidor, y MySQL para la persistencia de los datos.
+
+API Routes de Next.js:
+
+POST /api/validate-serial: Valida si el serial existe en la base de datos y no está activado.
+
+POST /api/register: Crea un nuevo usuario en la base de datos, hashea la contraseña y asocia el serial de la pulsera.
+
+POST /api/login: Autentica al usuario.
+
+GET /api/user-data: Recupera los datos del usuario. Requiere autenticación.
+
+PUT /api/user-data: Actualiza los datos del usuario. Requiere autenticación.
+
+POST /api/upload-file: Maneja la subida de archivos (foto y certificado).
+
+GET /api/nfc-data/[serial]: Un endpoint público que, dado un serial, devuelve los datos vitales para la vista de emergencia.
+
+Base de datos MySQL:
+
+Diseñar un esquema con tablas para:
+
+pulseras: serial (clave única), is_active (booleano), public_url.
+
+usuarios: id, username, password_hash, pulsera_serial (clave foránea).
+
+datos_personales: usuario_id (clave foránea), nombre, apellido, fecha_nacimiento, foto_url.
+
+datos_vitales: usuario_id (clave foránea), alergias, medicacion, enfermedades_cronicas, grupo_sanguineo_url.
+
+contactos_emergencia: id, usuario_id (clave foránea), nombre, telefono.
+
+Seguridad:
+
+Hasheo de contraseñas usando bcrypt.js.
+
+Autenticación con JWT (JSON Web Tokens) para las rutas privadas.
+
+Validación y saneamiento de todos los datos de entrada para prevenir inyecciones SQL y otros ataques.
+
+Generación de URL:
+
+El backend debe generar automáticamente una URL pública única (ej. [dominio]/nfc/[serial]) y guardarla en la tabla pulseras. Esta URL es la que se programará en el chip NFC.
+
+Auditoría:
+
+Implementar un sistema de logging para registrar eventos clave, como la activación de una pulsera, inicios de sesión y cambios de datos.
+
+Criterios de entrega:
+
+Código bien estructurado y documentado, siguiendo las mejores prácticas de React, Next.js y MySQL.
+
+Instrucciones detalladas para la instalación de dependencias, configuración de la base de datos y ejecución del proyecto.
+
+Un prototipo funcional que demuestre el flujo completo desde el ingreso del serial hasta la visualización de la información.
+
+El código debe ser escalable y mantener la separación de responsabilidades entre el frontend y el backend.

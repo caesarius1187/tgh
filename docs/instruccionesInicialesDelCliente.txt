@@ -1,0 +1,38 @@
+22/09/2025
+@Augusto buenas noches y perdón por la hora!
+Esto te sirve para cotizar?
+Especificación  
+– Activación y carga de datos TGH
+1. Acceso inicial
+El usuario recibe la pulsera en su packaging.
+Dentro del packaging figura el número de serie del chip NFC (ejemplo: ABC123).
+El usuario ingresa a la página única oficial.
+En esa página hay un campo para ingresar el número de serie de su pulsera.
+
+2. Validación del serial
+El sistema valida que el serial exista y no esté previamente activado.
+Si es correcto, redirige al flujo de registro de usuario.
+
+3. Registro de usuario
+El sistema solicita:
+Creación de usuario y contraseña.
+Aceptación de términos y condiciones / políticas de privacidad.
+Una vez confirmado, se habilita la planilla personal asociada a ese serial.
+
+4. Carga de datos en planilla
+La planilla vinculada al serial permite:
+Subir foto tipo carnet.
+Subir certificado de grupo sanguíneo (archivo).
+Completar datos personales básicos.
+Completar datos vitales (alergias, medicación, enfermedades crónicas).
+Registrar teléfonos de contacto (con opción de llamada directa desde móviles).
+5. Acceso continuo
+El usuario puede volver a ingresar a la planilla en cualquier momento con su usuario/contraseña para modificar datos.
+La URL pública asociada al chip mostrará solo la información vital y contactos de emergencia en caso de escaneo NFC.
+
+1. Existe una página centralizada única para activación.
+2. El serial del chip es la llave que vincula el dispositivo con la planilla.
+3. El usuario debe registrarse y aceptar términos antes de cargar sus datos.
+4. Hay diferencia entre lo privado (planilla editable) y lo público (vista de emergencia por NFC).
+
+El sistema debe contar con un BACK que sera el encargado de crear y organizar las URLs únicas de cada dispositivo, prepararlas para que luego sean cargadas en los chips NFC, y mantener todo bajo control con registros y auditoría

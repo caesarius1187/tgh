@@ -1,0 +1,21 @@
+# Configuración de variables de entorno para testing
+# Copia este contenido a .env.local
+
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=tgh_pulseras
+
+DATABASE_URL=mysql://root:@localhost:3306/tgh_pulseras
+
+JWT_SECRET=tgh_pulseras_jwt_secret_key_2024_secure
+JWT_EXPIRES_IN=7d
+
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=tgh_nextauth_secret_2024
+
+UPLOAD_DIR=./public/uploads
+MAX_FILE_SIZE=5242880
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000

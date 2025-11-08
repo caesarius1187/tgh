@@ -1,0 +1,404 @@
+================================================================================
+DISEÑO DE BASE DE DATOS - APLICACIÓN GESTIÓN DE PULSERAS TGH
+================================================================================
+
+BASE DE DATOS: tgh_pulseras
+DESCRIPCIÓN: Base de datos para gestión de pulseras con chips NFC
+
+================================================================================
+TABLA 1: pulseras
+================================================================================
+DESCRIPCIÓN: Almacena información de las pulseras NFC
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único de la pulsera
+  
+- serial VARCHAR(50) UNIQUE NOT NULL
+  Descripción: Número de serie único del chip NFC
+  Restricciones: Único, no nulo
+  
+- is_active BOOLEAN DEFAULT FALSE NOT NULL
+  Descripción: Indica si la pulsera está activada
+  Valores: TRUE (activada), FALSE (no activada)
+  
+- public_url VARCHAR(255) UNIQUE NULL
+  Descripción: URL pública generada automáticamente para acceso NFC
+  Formato: https://[dominio]/nfc/[serial]
+  Restricciones: Único cuando está activada
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de creación del registro
+  
+- updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de última actualización
+
+ÍNDICES:
+- PRIMARY KEY: id
+- UNIQUE INDEX: serial
+- UNIQUE INDEX: public_url
+- INDEX: is_active (para consultas de activación)
+
+================================================================================
+TABLA 2: usuarios
+================================================================================
+DESCRIPCIÓN: Información de usuarios registrados
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único del usuario
+  
+- username VARCHAR(50) UNIQUE NOT NULL
+  Descripción: Nombre de usuario para login
+  Restricciones: Único, no nulo, mínimo 3 caracteres
+  
+- password_hash VARCHAR(255) NOT NULL
+  Descripción: Hash de la contraseña usando bcrypt
+  Restricciones: No nulo, hash de bcrypt
+  
+- pulsera_id INT UNIQUE NULL
+  Descripción: ID de la pulsera asociada al usuario
+  Restricciones: Clave foránea a pulseras.id, único
+  
+- is_active BOOLEAN DEFAULT TRUE NOT NULL
+  Descripción: Indica si el usuario está activo
+  Valores: TRUE (activo), FALSE (inactivo)
+  
+- last_login TIMESTAMP NULL
+  Descripción: Fecha y hora del último login
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de creación del usuario
+  
+- updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de última actualización
+
+ÍNDICES:
+- PRIMARY KEY: id
+- UNIQUE INDEX: username
+- UNIQUE INDEX: pulsera_id
+- FOREIGN KEY: pulsera_id REFERENCES pulseras(id) ON DELETE SET NULL
+
+================================================================================
+TABLA 3: datos_personales
+================================================================================
+DESCRIPCIÓN: Datos personales de los usuarios
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único del registro
+  
+- usuario_id INT NOT NULL
+  Descripción: ID del usuario propietario de los datos
+  Restricciones: Clave foránea a usuarios.id
+  
+- nombre VARCHAR(100) NOT NULL
+  Descripción: Nombre del usuario
+  Restricciones: No nulo, máximo 100 caracteres
+  
+- apellido VARCHAR(100) NOT NULL
+  Descripción: Apellido del usuario
+  Restricciones: No nulo, máximo 100 caracteres
+  
+- fecha_nacimiento DATE NOT NULL
+  Descripción: Fecha de nacimiento del usuario
+  Restricciones: No nulo, formato YYYY-MM-DD
+  
+- foto_url VARCHAR(500) NULL
+  Descripción: URL o ruta del archivo de foto carnet
+  Restricciones: URL válida o ruta de archivo
+  
+- telefono VARCHAR(20) NULL
+  Descripción: Teléfono personal del usuario
+  Restricciones: Formato de teléfono válido
+  
+- email VARCHAR(100) NULL
+  Descripción: Email del usuario
+  Restricciones: Formato de email válido
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de creación
+  
+- updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de última actualización
+
+ÍNDICES:
+- PRIMARY KEY: id
+- UNIQUE INDEX: usuario_id (un usuario = un registro de datos personales)
+- FOREIGN KEY: usuario_id REFERENCES usuarios(id) ON DELETE CASCADE
+
+================================================================================
+TABLA 4: datos_vitales
+================================================================================
+DESCRIPCIÓN: Información médica vital del usuario
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único del registro
+  
+- usuario_id INT NOT NULL
+  Descripción: ID del usuario propietario de los datos
+  Restricciones: Clave foránea a usuarios.id
+  
+- alergias TEXT NULL
+  Descripción: Lista de alergias conocidas del usuario
+  Restricciones: Texto libre, puede ser NULL
+  
+- medicacion TEXT NULL
+  Descripción: Medicamentos que toma regularmente el usuario
+  Restricciones: Texto libre, puede ser NULL
+  
+- enfermedades_cronicas TEXT NULL
+  Descripción: Enfermedades crónicas o condiciones médicas
+  Restricciones: Texto libre, puede ser NULL
+  
+- grupo_sanguineo VARCHAR(10) NULL
+  Descripción: Grupo sanguíneo del usuario
+  Valores posibles: A+, A-, B+, B-, AB+, AB-, O+, O-
+  
+- grupo_sanguineo_url VARCHAR(500) NULL
+  Descripción: URL o ruta del certificado de grupo sanguíneo
+  Restricciones: URL válida o ruta de archivo
+  
+- peso DECIMAL(5,2) NULL
+  Descripción: Peso en kilogramos
+  Restricciones: Valor numérico positivo
+  
+- altura DECIMAL(5,2) NULL
+  Descripción: Altura en centímetros
+  Restricciones: Valor numérico positivo
+  
+- observaciones_medicas TEXT NULL
+  Descripción: Observaciones médicas adicionales
+  Restricciones: Texto libre
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de creación
+  
+- updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de última actualización
+
+ÍNDICES:
+- PRIMARY KEY: id
+- UNIQUE INDEX: usuario_id (un usuario = un registro de datos vitales)
+- INDEX: grupo_sanguineo (para consultas médicas)
+- FOREIGN KEY: usuario_id REFERENCES usuarios(id) ON DELETE CASCADE
+
+================================================================================
+TABLA 5: contactos_emergencia
+================================================================================
+DESCRIPCIÓN: Contactos de emergencia del usuario
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único del contacto
+  
+- usuario_id INT NOT NULL
+  Descripción: ID del usuario propietario del contacto
+  Restricciones: Clave foránea a usuarios.id
+  
+- nombre VARCHAR(100) NOT NULL
+  Descripción: Nombre del contacto de emergencia
+  Restricciones: No nulo, máximo 100 caracteres
+  
+- telefono VARCHAR(20) NOT NULL
+  Descripción: Número de teléfono del contacto
+  Restricciones: No nulo, formato de teléfono válido
+  
+- relacion VARCHAR(50) NULL
+  Descripción: Relación con el usuario (ej: padre, madre, esposo/a, hijo/a)
+  Restricciones: Texto libre
+  
+- es_principal BOOLEAN DEFAULT FALSE
+  Descripción: Indica si es el contacto principal de emergencia
+  Valores: TRUE (principal), FALSE (secundario)
+  
+- orden INT DEFAULT 0
+  Descripción: Orden de prioridad del contacto
+  Restricciones: Número entero, usado para ordenar contactos
+  
+- is_active BOOLEAN DEFAULT TRUE
+  Descripción: Indica si el contacto está activo
+  Valores: TRUE (activo), FALSE (inactivo)
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de creación
+  
+- updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de última actualización
+
+ÍNDICES:
+- PRIMARY KEY: id
+- INDEX: usuario_id (para consultas por usuario)
+- INDEX: usuario_id, es_principal (para encontrar contacto principal)
+- INDEX: usuario_id, orden (para ordenar contactos)
+- FOREIGN KEY: usuario_id REFERENCES usuarios(id) ON DELETE CASCADE
+
+================================================================================
+TABLA 6: auditoria_logs
+================================================================================
+DESCRIPCIÓN: Registro de eventos del sistema para auditoría
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único del log
+  
+- usuario_id INT NULL
+  Descripción: ID del usuario relacionado con el evento
+  Restricciones: Clave foránea a usuarios.id, puede ser NULL para eventos del sistema
+  
+- evento VARCHAR(100) NOT NULL
+  Descripción: Tipo de evento registrado
+  Valores: 'registro_usuario', 'activacion_pulsera', 'login', 'logout', 'actualizacion_datos', 'subida_archivo', 'acceso_nfc'
+  
+- descripcion TEXT NULL
+  Descripción: Descripción detallada del evento
+  Restricciones: Texto libre
+  
+- ip_address VARCHAR(45) NULL
+  Descripción: Dirección IP desde donde se realizó la acción
+  Restricciones: IPv4 o IPv6
+  
+- user_agent TEXT NULL
+  Descripción: User agent del navegador/cliente
+  Restricciones: Texto libre
+  
+- datos_adicionales JSON NULL
+  Descripción: Datos adicionales del evento en formato JSON
+  Restricciones: JSON válido
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora del evento
+
+ÍNDICES:
+- PRIMARY KEY: id
+- INDEX: usuario_id (para consultas por usuario)
+- INDEX: evento (para consultas por tipo de evento)
+- INDEX: created_at (para consultas por fecha)
+- FOREIGN KEY: usuario_id REFERENCES usuarios(id) ON DELETE SET NULL
+
+================================================================================
+TABLA 7: sesiones_usuarios
+================================================================================
+DESCRIPCIÓN: Gestión de sesiones activas de usuarios
+CAMPOS:
+- id INT AUTO_INCREMENT PRIMARY KEY
+  Descripción: Identificador único de la sesión
+  
+- usuario_id INT NOT NULL
+  Descripción: ID del usuario de la sesión
+  Restricciones: Clave foránea a usuarios.id
+  
+- token_hash VARCHAR(255) NOT NULL
+  Descripción: Hash del JWT token para la sesión
+  Restricciones: No nulo, hash del token JWT
+  
+- expires_at TIMESTAMP NOT NULL
+  Descripción: Fecha y hora de expiración de la sesión
+  Restricciones: No nulo, timestamp futuro
+  
+- ip_address VARCHAR(45) NULL
+  Descripción: Dirección IP desde donde se inició la sesión
+  Restricciones: IPv4 o IPv6
+  
+- user_agent TEXT NULL
+  Descripción: User agent del navegador/cliente
+  Restricciones: Texto libre
+  
+- is_active BOOLEAN DEFAULT TRUE
+  Descripción: Indica si la sesión está activa
+  Valores: TRUE (activa), FALSE (cerrada)
+  
+- last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de última actividad
+  
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  Descripción: Fecha y hora de creación de la sesión
+
+ÍNDICES:
+- PRIMARY KEY: id
+- INDEX: usuario_id (para consultas por usuario)
+- INDEX: token_hash (para validación de tokens)
+- INDEX: expires_at (para limpieza de sesiones expiradas)
+- INDEX: is_active (para consultas de sesiones activas)
+- FOREIGN KEY: usuario_id REFERENCES usuarios(id) ON DELETE CASCADE
+
+================================================================================
+RELACIONES ENTRE TABLAS
+================================================================================
+
+1. usuarios.pulsera_id → pulseras.id (1:1)
+   - Un usuario puede tener una pulsera
+   - Una pulsera puede estar asociada a un usuario
+
+2. datos_personales.usuario_id → usuarios.id (1:1)
+   - Un usuario tiene un registro de datos personales
+   - Un registro de datos personales pertenece a un usuario
+
+3. datos_vitales.usuario_id → usuarios.id (1:1)
+   - Un usuario tiene un registro de datos vitales
+   - Un registro de datos vitales pertenece a un usuario
+
+4. contactos_emergencia.usuario_id → usuarios.id (1:N)
+   - Un usuario puede tener múltiples contactos de emergencia
+   - Un contacto de emergencia pertenece a un usuario
+
+5. auditoria_logs.usuario_id → usuarios.id (N:1)
+   - Un usuario puede tener múltiples logs de auditoría
+   - Un log de auditoría puede pertenecer a un usuario (o ser del sistema)
+
+6. sesiones_usuarios.usuario_id → usuarios.id (1:N)
+   - Un usuario puede tener múltiples sesiones activas
+   - Una sesión pertenece a un usuario
+
+================================================================================
+CONFIGURACIÓN DE BASE DE DATOS
+================================================================================
+
+CHARSET: utf8mb4
+COLLATION: utf8mb4_unicode_ci
+ENGINE: InnoDB
+
+CONFIGURACIONES RECOMENDADAS:
+- innodb_buffer_pool_size: 70% de la RAM disponible
+- max_connections: 100 (ajustar según necesidades)
+- query_cache_size: 32M
+- tmp_table_size: 64M
+- max_heap_table_size: 64M
+
+================================================================================
+SCRIPTS DE CREACIÓN
+================================================================================
+
+-- Crear base de datos
+CREATE DATABASE tgh_pulseras 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+
+USE tgh_pulseras;
+
+-- Las tablas se crearán usando migraciones de Prisma o scripts SQL
+-- según la tecnología elegida para el ORM
+
+================================================================================
+NOTAS IMPORTANTES
+================================================================================
+
+1. SEGURIDAD:
+   - Todas las contraseñas se almacenan hasheadas con bcrypt
+   - Los tokens JWT se almacenan hasheados para seguridad
+   - Se registran todas las actividades importantes
+
+2. PERFORMANCE:
+   - Índices optimizados para consultas frecuentes
+   - Relaciones bien definidas para evitar N+1 queries
+   - Campos de auditoría separados para no afectar performance
+
+3. ESCALABILIDAD:
+   - Estructura preparada para crecimiento
+   - Campos JSON para datos flexibles
+   - Sistema de logging para monitoreo
+
+4. MANTENIMIENTO:
+   - Timestamps automáticos en todas las tablas
+   - Soft deletes donde sea apropiado
+   - Campos de estado para control de activación
+
+5. VALIDACIONES:
+   - Constraints a nivel de base de datos
+   - Validaciones adicionales en la aplicación
+   - Formato de datos estandarizado
