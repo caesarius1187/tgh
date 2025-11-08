@@ -1,58 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Configuración de CORS
-const ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-]
+type OriginList = readonly string[]
 
-const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] as const
 const ALLOWED_HEADERS = [
   'Content-Type',
   'Authorization',
   'X-Requested-With',
   'Accept',
   'Origin'
-]
+] as const
 
-/**
- * Configurar CORS para las respuestas
- */
+const buildAllowedOrigins = (): OriginList => {
+  const origins = new Set<string>()
+
+  const defaults = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://localhost:3000',
+    'https://127.0.0.1:3000'
+  ]
+
+  defaults.forEach(origin => origins.add(origin))
+
+  const addIfPresent = (value?: string | null) => {
+    if (value) {
+      origins.add(value.trim())
+    }
+  }
+
+  const parseCommaSeparated = (value?: string | null) => {
+    if (!value) return
+    value
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean)
+      .forEach(origin => origins.add(origin))
+  }
+
+  addIfPresent(process.env.NEXT_PUBLIC_APP_URL)
+  addIfPresent(process.env.APP_URL)
+  addIfPresent(process.env.PUBLIC_APP_URL)
+
+  const vercelUrl = process.env.VERCEL_URL
+  if (vercelUrl) {
+    const normalized = vercelUrl.startsWith('http')
+      ? vercelUrl
+      : `https://${vercelUrl}`
+    addIfPresent(normalized)
+  }
+
+  parseCommaSeparated(process.env.CORS_ALLOWED_ORIGINS)
+
+  return Array.from(origins)
+}
+
+const ALLOWED_ORIGINS = buildAllowedOrigins()
+
+const getSelfOrigin = (request: NextRequest): string => {
+  const { protocol, host } = request.nextUrl
+  return `${protocol}//${host}`
+}
+
+const isOriginAllowed = (origin: string | null | undefined, request?: NextRequest): boolean => {
+  if (!origin) return true
+  if (ALLOWED_ORIGINS.includes(origin)) return true
+
+  if (request) {
+    const selfOrigin = getSelfOrigin(request)
+    if (origin === selfOrigin) {
+      return true
+    }
+  }
+
+  return false
+}
+
 export const setCORSHeaders = (
   response: NextResponse,
-  origin?: string
+  origin?: string | null,
+  request?: NextRequest
 ): NextResponse => {
-  // Verificar si el origen está permitido
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin || '') ? origin : ALLOWED_ORIGINS[0]
-  
-  // Headers de CORS
-  response.headers.set('Access-Control-Allow-Origin', allowedOrigin || '*')
-  response.headers.set('Access-Control-Allow-Methods', ALLOWED_METHODS.join(', '))
-  response.headers.set('Access-Control-Allow-Headers', ALLOWED_HEADERS.join(', '))
+  const selfOrigin = request ? getSelfOrigin(request) : undefined
+  const fallbackOrigin = selfOrigin ?? ALLOWED_ORIGINS[0] ?? '*'
+
+  const isExplicitlyAllowed = origin && ALLOWED_ORIGINS.includes(origin)
+  const matchesSelf = origin && origin === selfOrigin
+
+  const allowedOrigin = isExplicitlyAllowed || matchesSelf ? origin : fallbackOrigin
+
+  response.headers.set(
+    'Access-Control-Allow-Origin',
+    allowedOrigin ?? '*'
+  )
+  response.headers.set(
+    'Access-Control-Allow-Methods',
+    ALLOWED_METHODS.join(', ')
+  )
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    ALLOWED_HEADERS.join(', ')
+  )
   response.headers.set('Access-Control-Allow-Credentials', 'true')
-  response.headers.set('Access-Control-Max-Age', '86400') // 24 horas
-  
+  response.headers.set('Access-Control-Max-Age', '86400')
+
   return response
 }
 
-/**
- * Manejar preflight requests (OPTIONS)
- */
 export const handlePreflightRequest = (request: NextRequest): NextResponse => {
   const origin = request.headers.get('origin')
-  
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+
+  if (!isOriginAllowed(origin, request)) {
     return new NextResponse(null, { status: 403 })
   }
-  
+
   const response = new NextResponse(null, { status: 200 })
-  return setCORSHeaders(response, origin || undefined)
+  return setCORSHeaders(response, origin, request)
 }
 
-/**
- * Middleware CORS para API routes
- */
 export const withCORS = <TArgs extends unknown[]>(
   handler: (request: NextRequest, ...args: TArgs) => Promise<NextResponse> | NextResponse
 ) => {
@@ -61,67 +126,48 @@ export const withCORS = <TArgs extends unknown[]>(
     ...args: TArgs
   ): Promise<NextResponse> => {
     const origin = request.headers.get('origin')
-    
-    // Manejar preflight requests
+
     if (request.method === 'OPTIONS') {
       return handlePreflightRequest(request)
     }
-    
-    // Verificar origen si no es una request del mismo origen
-    if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+
+    if (!isOriginAllowed(origin, request)) {
       return new NextResponse(
         JSON.stringify({ error: 'Origen no permitido' }),
-        { 
+        {
           status: 403,
           headers: { 'Content-Type': 'application/json' }
         }
       )
     }
-    
+
     try {
-      // Ejecutar el handler original
       const response = await handler(request, ...args)
-      
-      // Aplicar headers CORS
-      return setCORSHeaders(response, origin || undefined)
+      return setCORSHeaders(response, origin, request)
     } catch (error) {
       console.error('Error en API route:', error)
-      
+
       const errorResponse = new NextResponse(
         JSON.stringify({ error: 'Error interno del servidor' }),
-        { 
+        {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
       )
-      
-      return setCORSHeaders(errorResponse, origin || undefined)
+
+      return setCORSHeaders(errorResponse, origin, request)
     }
   }
 }
 
-/**
- * Verificar si la request es de un origen permitido
- */
 export const isAllowedOrigin = (request: NextRequest): boolean => {
   const origin = request.headers.get('origin')
-  
-  if (!origin) {
-    // Requests del mismo origen no tienen header origin
-    return true
-  }
-  
-  return ALLOWED_ORIGINS.includes(origin)
+  return isOriginAllowed(origin, request)
 }
 
-/**
- * Obtener configuración de CORS para el cliente
- */
-export const getCORSConfig = () => {
-  return {
-    origin: ALLOWED_ORIGINS,
-    methods: ALLOWED_METHODS,
-    allowedHeaders: ALLOWED_HEADERS,
-    credentials: true
-  }
-}
+export const getCORSConfig = () => ({
+  origin: ALLOWED_ORIGINS,
+  methods: ALLOWED_METHODS,
+  allowedHeaders: ALLOWED_HEADERS,
+  credentials: true
+})
