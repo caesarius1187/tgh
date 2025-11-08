@@ -29,8 +29,8 @@ interface UserData {
     alergias: string
     medicamentos: string
     condiciones_medicas: string
-    peso?: number
-    altura?: number
+    peso: number | null
+    altura: number | null
     grupo_sanguineo_url?: string
   }
   contactos: Array<{

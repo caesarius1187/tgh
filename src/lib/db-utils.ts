@@ -15,8 +15,6 @@ import type {
 
 type CountRow = RowDataPacket & { count: number }
 type SerialActiveRow = RowDataPacket & { is_active: boolean }
-type NextOrderRow = RowDataPacket & { next_orden: number }
-
 type UsuarioRow = RowDataPacket & Usuario
 type DatosPersonalesRow = RowDataPacket & DatosPersonales
 type DatosVitalesRow = RowDataPacket & DatosVitales

@@ -114,7 +114,6 @@ export const PUT = withCORS(async (request: NextRequest) => {
     
     const { tipo, datos } = body
     
-    let updateResult: ResultSetHeader | undefined
     let auditDescription = ''
     
     if (tipo === 'personal') {
@@ -128,13 +127,13 @@ export const PUT = withCORS(async (request: NextRequest) => {
       
       if (existingData.length > 0) {
         // Actualizar datos existentes
-        updateResult = await executeQuery<ResultSetHeader>(
+        await executeQuery<ResultSetHeader>(
           'UPDATE datos_personales SET nombre = ?, apellido = ?, fecha_nacimiento = ?, telefono = ?, email = ? WHERE usuario_id = ?',
           [nombre, apellido, fecha_nacimiento, telefono, email, user.userId]
         )
       } else {
         // Crear nuevos datos personales
-        updateResult = await executeQuery<ResultSetHeader>(
+        await executeQuery<ResultSetHeader>(
           'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, telefono, email) VALUES (?, ?, ?, ?, ?, ?)',
           [user.userId, nombre, apellido, fecha_nacimiento, telefono, email]
         )
@@ -153,13 +152,13 @@ export const PUT = withCORS(async (request: NextRequest) => {
       
       if (existingData.length > 0) {
         // Actualizar datos existentes
-        updateResult = await executeQuery<ResultSetHeader>(
+        await executeQuery<ResultSetHeader>(
           'UPDATE datos_vitales SET grupo_sanguineo = ?, alergias = ?, medicacion = ?, enfermedades_cronicas = ?, peso = ?, altura = ? WHERE usuario_id = ?',
           [grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura, user.userId]
         )
       } else {
         // Crear nuevos datos vitales
-        updateResult = await executeQuery<ResultSetHeader>(
+        await executeQuery<ResultSetHeader>(
           'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [user.userId, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura]
         )
@@ -172,7 +171,7 @@ export const PUT = withCORS(async (request: NextRequest) => {
       
       if (id) {
         // Actualizar contacto existente
-        updateResult = await executeQuery<ResultSetHeader>(
+        await executeQuery<ResultSetHeader>(
           'UPDATE contactos_emergencia SET nombre = ?, telefono = ?, relacion = ?, es_principal = ? WHERE id = ? AND usuario_id = ?',
           [nombre, telefono, relacion, es_principal, id, user.userId]
         )
@@ -184,7 +183,7 @@ export const PUT = withCORS(async (request: NextRequest) => {
           [user.userId]
         )
         
-        updateResult = await executeQuery<ResultSetHeader>(
+        await executeQuery<ResultSetHeader>(
           'INSERT INTO contactos_emergencia (usuario_id, nombre, telefono, relacion, es_principal, orden) VALUES (?, ?, ?, ?, ?, ?)',
           [user.userId, nombre, telefono, relacion, es_principal, orden[0]?.next_orden ?? 1]
         )

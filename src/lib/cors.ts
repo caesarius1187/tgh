@@ -53,10 +53,13 @@ export const handlePreflightRequest = (request: NextRequest): NextResponse => {
 /**
  * Middleware CORS para API routes
  */
-export const withCORS = (
-  handler: (request: NextRequest) => Promise<NextResponse> | NextResponse
+export const withCORS = <TArgs extends unknown[]>(
+  handler: (request: NextRequest, ...args: TArgs) => Promise<NextResponse> | NextResponse
 ) => {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (
+    request: NextRequest,
+    ...args: TArgs
+  ): Promise<NextResponse> => {
     const origin = request.headers.get('origin')
     
     // Manejar preflight requests
@@ -77,7 +80,7 @@ export const withCORS = (
     
     try {
       // Ejecutar el handler original
-      const response = await handler(request)
+      const response = await handler(request, ...args)
       
       // Aplicar headers CORS
       return setCORSHeaders(response, origin || undefined)

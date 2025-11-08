@@ -312,18 +312,18 @@ export const cleanupRateLimitStore = (): void => {
   const now = Date.now()
   
   // Limpiar request counts expirados
-  for (const [key, value] of requestCounts.entries()) {
+  requestCounts.forEach((value, key) => {
     if (now > value.resetTime) {
       requestCounts.delete(key)
     }
-  }
+  })
   
   // Limpiar login attempts expirados
-  for (const [key, value] of loginAttempts.entries()) {
+  loginAttempts.forEach((value, key) => {
     if (now > value.lockoutUntil && value.lockoutUntil > 0) {
       loginAttempts.delete(key)
     }
-  }
+  })
 }
 
 // Ejecutar limpieza cada 5 minutos

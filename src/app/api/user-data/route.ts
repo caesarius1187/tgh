@@ -277,7 +277,10 @@ async function updatePersonalData(
     }
     
     const setClause = campos.map(campo => `${campo} = ?`).join(', ')
-    const values = campos.map(campo => datos[campo] ?? null)
+    const values: Array<string | number | null> = campos.map(campo => {
+      const value = datos[campo]
+      return value === undefined ? null : (value as string | number | null)
+    })
     values.push(userId)
     
     await executeQuery<ResultSetHeader>(
@@ -314,7 +317,10 @@ async function updateVitalData(
     }
     
     const setClause = campos.map(campo => `${campo} = ?`).join(', ')
-    const values = campos.map(campo => datos[campo] ?? null)
+    const values: Array<string | number | null> = campos.map(campo => {
+      const value = datos[campo]
+      return value === undefined ? null : (value as string | number | null)
+    })
     values.push(userId)
     
     await executeQuery<ResultSetHeader>(

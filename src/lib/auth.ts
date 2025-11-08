@@ -1,10 +1,21 @@
-import jwt from 'jsonwebtoken'
+import jwt, { type Secret, type SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { NextRequest } from 'next/server'
+import type { ResultSetHeader } from 'mysql2/promise'
 
 // Configuración JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
+const TOKEN_ISSUER = 'tgh-pulseras' as const
+const TOKEN_AUDIENCE = 'tgh-users' as const
+const tokenExpiresIn = JWT_EXPIRES_IN as SignOptions['expiresIn']
+
+const jwtSecret: Secret = JWT_SECRET
+const accessTokenOptions: SignOptions = {
+  issuer: TOKEN_ISSUER,
+  audience: TOKEN_AUDIENCE,
+  expiresIn: tokenExpiresIn
+}
 
 // Interfaces
 export interface JWTPayload {
@@ -46,11 +57,7 @@ export const verifyPassword = async (
  * Generar token JWT
  */
 export const generateToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string => {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-    issuer: 'tgh-pulseras',
-    audience: 'tgh-users'
-  })
+  return jwt.sign(payload, jwtSecret, accessTokenOptions)
 }
 
 /**
@@ -58,12 +65,16 @@ export const generateToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
  */
 export const verifyToken = (token: string): JWTPayload | null => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
-      issuer: 'tgh-pulseras',
-      audience: 'tgh-users'
-    }) as JWTPayload
+    const decoded = jwt.verify(token, jwtSecret, {
+      issuer: TOKEN_ISSUER,
+      audience: TOKEN_AUDIENCE
+    })
     
-    return decoded
+    if (typeof decoded === 'string') {
+      return null
+    }
+    
+    return decoded as JWTPayload
   } catch (error) {
     console.error('Error verificando token:', error)
     return null
@@ -164,9 +175,9 @@ export const validatePassword = (password: string): {
  * Generar refresh token (para futuras implementaciones)
  */
 export const generateRefreshToken = (): string => {
-  return jwt.sign({}, JWT_SECRET, {
+  return jwt.sign({}, jwtSecret, {
     expiresIn: '30d',
-    issuer: 'tgh-pulseras',
+    issuer: TOKEN_ISSUER,
     audience: 'tgh-refresh'
   })
 }
@@ -177,10 +188,10 @@ export const generateRefreshToken = (): string => {
 export const cleanExpiredTokens = async (): Promise<number> => {
   try {
     const { executeQuery } = await import('./database')
-    const result = await executeQuery(
+    const result = await executeQuery<ResultSetHeader>(
       'DELETE FROM sesiones_usuarios WHERE expires_at < NOW()'
     )
-    return result.affectedRows || 0
+    return result.affectedRows ?? 0
   } catch (error) {
     console.error('Error limpiando tokens expirados:', error)
     return 0
