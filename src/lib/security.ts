@@ -10,6 +10,8 @@ const LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutos
 const requestCounts = new Map<string, { count: number; resetTime: number }>()
 const loginAttempts = new Map<string, { attempts: number; lockoutUntil: number }>()
 
+type UnknownRecord = Record<string, unknown>
+
 /**
  * Limpiar datos de entrada para prevenir inyecciones
  */
@@ -24,14 +26,24 @@ export const sanitizeInput = (input: string): string => {
 /**
  * Validar y limpiar datos de entrada
  */
-export const sanitizeObject = (obj: Record<string, any>): Record<string, any> => {
-  const sanitized: Record<string, any> = {}
+export const sanitizeObject = (obj: UnknownRecord): UnknownRecord => {
+  const sanitized: UnknownRecord = {}
   
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
       sanitized[key] = sanitizeInput(value)
-    } else if (typeof value === 'object' && value !== null) {
-      sanitized[key] = sanitizeObject(value)
+    } else if (Array.isArray(value)) {
+      sanitized[key] = value.map(item => {
+        if (typeof item === 'string') {
+          return sanitizeInput(item)
+        }
+        if (item && typeof item === 'object') {
+          return sanitizeObject(item as UnknownRecord)
+        }
+        return item
+      })
+    } else if (value && typeof value === 'object') {
+      sanitized[key] = sanitizeObject(value as UnknownRecord)
     } else {
       sanitized[key] = value
     }
@@ -162,7 +174,6 @@ export const checkLoginAttempts = (ip: string, username: string): {
  */
 export const recordFailedLogin = (ip: string, username: string): void => {
   const key = `${ip}:${username}`
-  const now = Date.now()
   
   const current = loginAttempts.get(key) || {
     attempts: 0,
@@ -173,7 +184,7 @@ export const recordFailedLogin = (ip: string, username: string): void => {
   loginAttempts.set(key, current)
   
   // Log del intento fallido
-  createAuditLog(
+  void createAuditLog(
     'login_failed',
     `Intento de login fallido para usuario: ${username}`,
     null,
@@ -241,7 +252,7 @@ export const getSecurityHeaders = (): Record<string, string> => {
 /**
  * Limpiar datos sensibles de logs
  */
-export const sanitizeLogData = (data: any): any => {
+export const sanitizeLogData = (data: unknown): unknown => {
   const sensitiveFields = ['password', 'password_hash', 'token', 'secret', 'key']
   
   if (typeof data !== 'object' || data === null) {
@@ -252,12 +263,12 @@ export const sanitizeLogData = (data: any): any => {
     return data.map(item => sanitizeLogData(item))
   }
   
-  const sanitized: any = {}
+  const sanitized: UnknownRecord = {}
   
   for (const [key, value] of Object.entries(data)) {
     if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
       sanitized[key] = '[REDACTED]'
-    } else if (typeof value === 'object') {
+    } else if (value && typeof value === 'object') {
       sanitized[key] = sanitizeLogData(value)
     } else {
       sanitized[key] = value

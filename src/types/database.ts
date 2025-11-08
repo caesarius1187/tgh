@@ -1,5 +1,13 @@
 // Tipos para la base de datos
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue }
+
 export interface Pulsera {
   id: number
   serial: string
@@ -68,7 +76,7 @@ export interface AuditoriaLog {
   descripcion: string | null
   ip_address: string | null
   user_agent: string | null
-  datos_adicionales: any | null
+  datos_adicionales: JsonValue | null
   created_at: Date
 }
 

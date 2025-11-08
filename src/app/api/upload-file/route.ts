@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { ResultSetHeader } from 'mysql2/promise'
 import { requireAuth } from '@/lib/auth'
 import { executeQuery, createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
@@ -113,30 +114,30 @@ export const POST = withCORS(async (request: NextRequest) => {
     await writeFile(filePath, buffer)
     
     // Actualizar base de datos según el tipo
-    let updateResult
+    let updateResult: ResultSetHeader | undefined
     
     if (tipo === 'foto') {
-      updateResult = await executeQuery(
+      updateResult = await executeQuery<ResultSetHeader>(
         'UPDATE datos_personales SET foto_url = ? WHERE usuario_id = ?',
         [fileUrl, user.userId]
       )
     } else if (tipo === 'certificado_grupo_sanguineo') {
-      updateResult = await executeQuery(
+      updateResult = await executeQuery<ResultSetHeader>(
         'UPDATE datos_vitales SET grupo_sanguineo_url = ? WHERE usuario_id = ?',
         [fileUrl, user.userId]
       )
     }
     
     // Verificar que la actualización fue exitosa
-    if (updateResult && (updateResult as any).affectedRows === 0) {
+    if (updateResult && updateResult.affectedRows === 0) {
       // Si no hay datos personales/vitales, crear el registro
       if (tipo === 'foto') {
-        await executeQuery(
+        await executeQuery<ResultSetHeader>(
           'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, foto_url) VALUES (?, ?, ?, ?, ?)',
           [user.userId, '', '', '1900-01-01', fileUrl]
         )
       } else if (tipo === 'certificado_grupo_sanguineo') {
-        await executeQuery(
+        await executeQuery<ResultSetHeader>(
           'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo_url) VALUES (?, ?)',
           [user.userId, fileUrl]
         )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import FileUpload from '@/components/FileUpload'
@@ -42,6 +42,52 @@ interface UserData {
   }>
 }
 
+interface ApiEmergencyContact {
+  id: number
+  nombre: string
+  telefono: string
+  relacion: string | null
+  es_principal: boolean | null
+}
+
+interface ApiUserDataResponse {
+  datosPersonales?: {
+    nombre?: string | null
+    apellido?: string | null
+    fecha_nacimiento?: string | null
+    telefono?: string | null
+    email?: string | null
+    foto_url?: string | null
+  } | null
+  datosVitales?: {
+    grupo_sanguineo?: string | null
+    alergias?: string | null
+    medicacion?: string | null
+    enfermedades_cronicas?: string | null
+    peso?: number | null
+    altura?: number | null
+    grupo_sanguineo_url?: string | null
+  } | null
+  contactosEmergencia?: ApiEmergencyContact[] | null
+}
+
+type PersonalFormData = {
+  nombre: string
+  apellido: string
+  fecha_nacimiento: string
+  telefono: string
+  email: string
+}
+
+type VitalFormData = {
+  grupo_sanguineo: string
+  alergias: string
+  medicacion: string
+  enfermedades_cronicas: string
+  peso: number | null
+  altura: number | null
+}
+
 export default function DashboardPage() {
   const { user, token, logout } = useAuth()
   const [userData, setUserData] = useState<UserData | null>(null)
@@ -60,13 +106,15 @@ export default function DashboardPage() {
   const [contactError, setContactError] = useState('')
   const [isSavingContact, setIsSavingContact] = useState(false)
 
-  useEffect(() => {
-    if (token) {
-      fetchUserData()
+  const fetchUserData = useCallback(async () => {
+    if (!token) {
+      setIsLoading(false)
+      return
     }
-  }, [token])
 
-  const fetchUserData = async () => {
+    setIsLoading(true)
+    setError('')
+
     try {
       const response = await fetch('/api/user-data', {
         headers: {
@@ -75,7 +123,7 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        const data: ApiUserDataResponse = await response.json()
         
         // Función para extraer solo la fecha (YYYY-MM-DD) de cualquier formato
         const extractDateOnly = (dateString: string) => {
@@ -132,28 +180,28 @@ export default function DashboardPage() {
         // Mapear los datos de la API al formato esperado por el frontend
         const mappedData: UserData = {
           personal: {
-            nombre: data.datosPersonales?.nombre || '',
-            apellido: data.datosPersonales?.apellido || '',
-            fecha_nacimiento: formatDateForInput(data.datosPersonales?.fecha_nacimiento || ''),
-            fecha_nacimiento_display: formatDateForDisplay(data.datosPersonales?.fecha_nacimiento || ''),
-            telefono: data.datosPersonales?.telefono || '',
-            email: data.datosPersonales?.email || '',
-            foto_url: data.datosPersonales?.foto_url || ''
+            nombre: data.datosPersonales?.nombre ?? '',
+            apellido: data.datosPersonales?.apellido ?? '',
+            fecha_nacimiento: formatDateForInput(data.datosPersonales?.fecha_nacimiento ?? ''),
+            fecha_nacimiento_display: formatDateForDisplay(data.datosPersonales?.fecha_nacimiento ?? ''),
+            telefono: data.datosPersonales?.telefono ?? '',
+            email: data.datosPersonales?.email ?? '',
+            foto_url: data.datosPersonales?.foto_url ?? ''
           },
           vitales: {
-            grupo_sanguineo: data.datosVitales?.grupo_sanguineo || '',
-            alergias: data.datosVitales?.alergias || '',
-            medicamentos: data.datosVitales?.medicacion || '',
-            condiciones_medicas: data.datosVitales?.enfermedades_cronicas || '',
-            peso: data.datosVitales?.peso || null,
-            altura: data.datosVitales?.altura || null,
-            grupo_sanguineo_url: data.datosVitales?.grupo_sanguineo_url || ''
+            grupo_sanguineo: data.datosVitales?.grupo_sanguineo ?? '',
+            alergias: data.datosVitales?.alergias ?? '',
+            medicamentos: data.datosVitales?.medicacion ?? '',
+            condiciones_medicas: data.datosVitales?.enfermedades_cronicas ?? '',
+            peso: data.datosVitales?.peso ?? null,
+            altura: data.datosVitales?.altura ?? null,
+            grupo_sanguineo_url: data.datosVitales?.grupo_sanguineo_url ?? ''
           },
-          contactos: (data.contactosEmergencia || []).map((contacto: any) => ({
+          contactos: (data.contactosEmergencia ?? []).map((contacto: ApiEmergencyContact) => ({
             id: contacto.id,
             nombre: contacto.nombre,
             telefono: contacto.telefono,
-            relacion: contacto.relacion || '',
+            relacion: contacto.relacion ?? '',
             es_principal: Boolean(contacto.es_principal)
           }))
         }
@@ -161,14 +209,19 @@ export default function DashboardPage() {
         console.log('Datos mapeados:', mappedData)
         setUserData(mappedData)
       } else {
-        setError('Error al cargar los datos del usuario')
+        const errorData = (await response.json()) as { error?: string }
+        throw new Error(errorData.error || 'Error al cargar los datos del usuario')
       }
     } catch (error) {
-      setError('Error de conexión')
+      setError(error instanceof Error ? error.message : 'Error de conexión')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    void fetchUserData()
+  }, [fetchUserData])
 
   const handleFileUpload = async (tipo: 'foto' | 'certificado_grupo_sanguineo', file: File) => {
     const formData = new FormData()
@@ -185,11 +238,9 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        const result = await response.json()
-        // Actualizar los datos del usuario
-        fetchUserData()
+        await fetchUserData()
       } else {
-        const errorData = await response.json()
+        const errorData = (await response.json()) as { error?: string }
         throw new Error(errorData.error || 'Error al subir archivo')
       }
     } catch (error) {
@@ -197,7 +248,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleUpdatePersonalData = async (data: any) => {
+  const handleUpdatePersonalData = async (data: PersonalFormData) => {
     try {
       const response = await fetch('/api/update-user-data', {
         method: 'PUT',
@@ -213,9 +264,9 @@ export default function DashboardPage() {
 
       if (response.ok) {
         setEditingPersonal(false)
-        fetchUserData()
+        await fetchUserData()
       } else {
-        const errorData = await response.json()
+        const errorData = (await response.json()) as { error?: string }
         throw new Error(errorData.error || 'Error al actualizar datos')
       }
     } catch (error) {
@@ -223,7 +274,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleUpdateVitalData = async (data: any) => {
+  const handleUpdateVitalData = async (data: VitalFormData) => {
     try {
       const response = await fetch('/api/update-user-data', {
         method: 'PUT',
@@ -239,9 +290,9 @@ export default function DashboardPage() {
 
       if (response.ok) {
         setEditingVital(false)
-        fetchUserData()
+        await fetchUserData()
       } else {
-        const errorData = await response.json()
+        const errorData = (await response.json()) as { error?: string }
         throw new Error(errorData.error || 'Error al actualizar datos')
       }
     } catch (error) {
@@ -293,13 +344,13 @@ export default function DashboardPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = (await response.json()) as { error?: string }
         throw new Error(errorData.error || 'No se pudo guardar el contacto')
       }
 
       setIsAddingContact(false)
       resetContactForm()
-      fetchUserData()
+      await fetchUserData()
     } catch (error) {
       setContactError(
         error instanceof Error

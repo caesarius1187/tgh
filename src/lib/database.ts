@@ -1,4 +1,19 @@
-import mysql from 'mysql2/promise'
+import mysql, {
+  type Pool,
+  type PoolConnection,
+  type ResultSetHeader,
+  type RowDataPacket,
+  type OkPacket
+} from 'mysql2/promise'
+
+type QueryRows =
+  | RowDataPacket[]
+  | RowDataPacket[][]
+  | ResultSetHeader
+  | OkPacket
+  | OkPacket[]
+
+type QueryValue = string | number | boolean | Date | Buffer | null | undefined
 
 // Configuración de la base de datos
 const dbConfig = {
@@ -15,9 +30,9 @@ const dbConfig = {
 }
 
 // Pool de conexiones
-let pool: mysql.Pool | null = null
+let pool: Pool | null = null
 
-export const getPool = (): mysql.Pool => {
+export const getPool = (): Pool => {
   if (!pool) {
     pool = mysql.createPool(dbConfig)
   }
@@ -25,20 +40,20 @@ export const getPool = (): mysql.Pool => {
 }
 
 // Función para obtener una conexión
-export const getConnection = async (): Promise<mysql.PoolConnection> => {
+export const getConnection = async (): Promise<PoolConnection> => {
   const pool = getPool()
   return await pool.getConnection()
 }
 
 // Función para ejecutar queries
-export const executeQuery = async <T = any>(
+export const executeQuery = async <T extends QueryRows>(
   query: string,
-  params?: any[]
+  params: ReadonlyArray<QueryValue | QueryValue[]> = []
 ): Promise<T> => {
   const connection = await getConnection()
   try {
-    const [rows] = await connection.execute(query, params)
-    return rows as T
+    const [rows] = await connection.execute<T>(query, params as unknown[])
+    return rows
   } finally {
     connection.release()
   }

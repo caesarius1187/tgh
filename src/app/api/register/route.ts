@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import { registerUserSchema, validateData } from '@/lib/validations'
 import { 
   checkSerialExists, 
@@ -29,7 +30,7 @@ export const POST = withCORS(async (request: NextRequest) => {
       )
     }
     
-    const { username, password, serial, confirmPassword } = validation.data
+    const { username, password, serial } = validation.data
     const ip = getClientIP(request)
     const userAgent = request.headers.get('user-agent')
     
@@ -100,7 +101,7 @@ export const POST = withCORS(async (request: NextRequest) => {
     const passwordHash = await hashPassword(password)
     
     // Obtener ID de la pulsera
-    const pulseraResult = await executeQuery(
+    const pulseraResult = await executeQuery<Array<RowDataPacket & { id: number }>>(
       'SELECT id FROM pulseras WHERE serial = ?',
       [serial]
     )
@@ -121,12 +122,12 @@ export const POST = withCORS(async (request: NextRequest) => {
       await connection.beginTransaction()
       
       // Crear usuario
-      const userResult = await connection.execute(`
+      const [userResult] = await connection.execute<ResultSetHeader>(`
         INSERT INTO usuarios (username, password_hash, pulsera_id, is_active)
         VALUES (?, ?, ?, TRUE)
       `, [username, passwordHash, pulseraId])
       
-      const userId = (userResult as any)[0].insertId
+      const userId = userResult.insertId
       
       // Activar pulsera
       const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL}/nfc/${serial}`

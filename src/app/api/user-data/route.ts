@@ -1,8 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { ResultSetHeader } from 'mysql2/promise'
+
 import { requireAuth } from '@/lib/auth'
 import { getUserCompleteData, createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
+
+type UpdatePersonalPayload = Partial<Record<'nombre' | 'apellido' | 'fecha_nacimiento' | 'telefono' | 'email', string>>
+
+type UpdateVitalPayload = Partial<
+  Record<
+    'alergias' | 'medicacion' | 'enfermedades_cronicas' | 'grupo_sanguineo' | 'observaciones_medicas',
+    string
+  >
+> &
+  Partial<Record<'peso' | 'altura', number | null>>
+
+type EmergencyContactPayload = {
+  nombre: string
+  telefono: string
+  relacion?: string
+  es_principal?: boolean
+}
+
+type UpdateRequestPayload =
+  | { tipo: 'personales'; datos: UpdatePersonalPayload }
+  | { tipo: 'vitales'; datos: UpdateVitalPayload }
+  | { tipo: 'contactos'; datos: EmergencyContactPayload[] }
+
+type UpdateOutcome<T> =
+  | { success: true; data: T }
+  | { success: false; error: string }
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const isUpdatePersonalPayload = (value: unknown): value is UpdatePersonalPayload => {
+  if (!isObject(value)) return false
+  const allowedKeys = ['nombre', 'apellido', 'fecha_nacimiento', 'telefono', 'email']
+  return Object.keys(value).every(key => allowedKeys.includes(key))
+}
+
+const isUpdateVitalPayload = (value: unknown): value is UpdateVitalPayload => {
+  if (!isObject(value)) return false
+  const allowedKeys = [
+    'alergias',
+    'medicacion',
+    'enfermedades_cronicas',
+    'grupo_sanguineo',
+    'observaciones_medicas',
+    'peso',
+    'altura'
+  ]
+  return Object.keys(value).every(key => allowedKeys.includes(key))
+}
+
+const isEmergencyContactPayload = (value: unknown): value is EmergencyContactPayload => {
+  if (!isObject(value)) return false
+  const { nombre, telefono } = value
+  return typeof nombre === 'string' && typeof telefono === 'string'
+}
+
+const isUpdateRequestPayload = (value: unknown): value is UpdateRequestPayload => {
+  if (!isObject(value)) return false
+  const { tipo, datos } = value as { tipo?: unknown; datos?: unknown }
+
+  switch (tipo) {
+    case 'personales':
+      return isUpdatePersonalPayload(datos)
+    case 'vitales':
+      return isUpdateVitalPayload(datos)
+    case 'contactos':
+      return Array.isArray(datos) && datos.every(isEmergencyContactPayload)
+    default:
+      return false
+  }
+}
 
 export const GET = withCORS(async (request: NextRequest) => {
   try {
@@ -111,15 +184,15 @@ export const PUT = withCORS(async (request: NextRequest) => {
     
     // Obtener datos del body
     const body = await request.json()
-    const { tipo, datos } = body
     
-    if (!tipo || !datos) {
+    if (!isUpdateRequestPayload(body)) {
       return NextResponse.json(
         { error: 'Tipo y datos son requeridos' },
         { status: 400 }
       )
     }
     
+    const { tipo, datos } = body
     let updateResult
     
     switch (tipo) {
@@ -183,25 +256,33 @@ export const PUT = withCORS(async (request: NextRequest) => {
 })
 
 // Funciones helper para actualizar datos
-async function updatePersonalData(userId: number, datos: any) {
+async function updatePersonalData(
+  userId: number,
+  datos: UpdatePersonalPayload
+): Promise<UpdateOutcome<UpdatePersonalPayload>> {
   try {
     const { executeQuery } = await import('@/lib/database')
     
-    const campos = Object.keys(datos).filter(key => 
-      ['nombre', 'apellido', 'fecha_nacimiento', 'telefono', 'email'].includes(key)
-    )
+    const allowedFields: Array<keyof UpdatePersonalPayload> = [
+      'nombre',
+      'apellido',
+      'fecha_nacimiento',
+      'telefono',
+      'email'
+    ]
+    const campos = allowedFields.filter(campo => datos[campo] !== undefined)
     
     if (campos.length === 0) {
       return { success: false, error: 'No hay campos válidos para actualizar' }
     }
     
     const setClause = campos.map(campo => `${campo} = ?`).join(', ')
-    const values = campos.map(campo => datos[campo])
+    const values = campos.map(campo => datos[campo] ?? null)
     values.push(userId)
     
-    await executeQuery(
+    await executeQuery<ResultSetHeader>(
       `UPDATE datos_personales SET ${setClause} WHERE usuario_id = ?`,
-      values
+      values as Array<string | number | null>
     )
     
     return { success: true, data: datos }
@@ -210,25 +291,35 @@ async function updatePersonalData(userId: number, datos: any) {
   }
 }
 
-async function updateVitalData(userId: number, datos: any) {
+async function updateVitalData(
+  userId: number,
+  datos: UpdateVitalPayload
+): Promise<UpdateOutcome<UpdateVitalPayload>> {
   try {
     const { executeQuery } = await import('@/lib/database')
     
-    const campos = Object.keys(datos).filter(key => 
-      ['alergias', 'medicacion', 'enfermedades_cronicas', 'grupo_sanguineo', 'peso', 'altura', 'observaciones_medicas'].includes(key)
-    )
+    const allowedFields: Array<keyof UpdateVitalPayload> = [
+      'alergias',
+      'medicacion',
+      'enfermedades_cronicas',
+      'grupo_sanguineo',
+      'peso',
+      'altura',
+      'observaciones_medicas'
+    ]
+    const campos = allowedFields.filter(campo => datos[campo] !== undefined)
     
     if (campos.length === 0) {
       return { success: false, error: 'No hay campos válidos para actualizar' }
     }
     
     const setClause = campos.map(campo => `${campo} = ?`).join(', ')
-    const values = campos.map(campo => datos[campo])
+    const values = campos.map(campo => datos[campo] ?? null)
     values.push(userId)
     
-    await executeQuery(
+    await executeQuery<ResultSetHeader>(
       `UPDATE datos_vitales SET ${setClause} WHERE usuario_id = ?`,
-      values
+      values as Array<string | number | null>
     )
     
     return { success: true, data: datos }
@@ -237,12 +328,15 @@ async function updateVitalData(userId: number, datos: any) {
   }
 }
 
-async function updateEmergencyContacts(userId: number, contactos: any[]) {
+async function updateEmergencyContacts(
+  userId: number,
+  contactos: EmergencyContactPayload[]
+): Promise<UpdateOutcome<EmergencyContactPayload[]>> {
   try {
     const { executeQuery } = await import('@/lib/database')
     
     // Eliminar contactos existentes
-    await executeQuery(
+    await executeQuery<ResultSetHeader>(
       'DELETE FROM contactos_emergencia WHERE usuario_id = ?',
       [userId]
     )
@@ -250,7 +344,7 @@ async function updateEmergencyContacts(userId: number, contactos: any[]) {
     // Insertar nuevos contactos
     for (let i = 0; i < contactos.length; i++) {
       const contacto = contactos[i]
-      await executeQuery(
+      await executeQuery<ResultSetHeader>(
         `INSERT INTO contactos_emergencia 
          (usuario_id, nombre, telefono, relacion, es_principal, orden, is_active)
          VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
@@ -258,8 +352,8 @@ async function updateEmergencyContacts(userId: number, contactos: any[]) {
           userId,
           contacto.nombre,
           contacto.telefono,
-          contacto.relacion || '',
-          contacto.es_principal || false,
+          contacto.relacion ?? '',
+          contacto.es_principal ?? false,
           i + 1
         ]
       )

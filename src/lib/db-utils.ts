@@ -1,5 +1,87 @@
-import { executeQuery } from './database'
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
+
+import {
+  executeQuery
+} from './database'
 export { executeQuery } from './database'
+
+import type {
+  Usuario,
+  DatosPersonales,
+  DatosVitales,
+  ContactoEmergencia,
+  Pulsera
+} from '@/types/database'
+
+type CountRow = RowDataPacket & { count: number }
+type SerialActiveRow = RowDataPacket & { is_active: boolean }
+type NextOrderRow = RowDataPacket & { next_orden: number }
+
+type UsuarioRow = RowDataPacket & Usuario
+type DatosPersonalesRow = RowDataPacket & DatosPersonales
+type DatosVitalesRow = RowDataPacket & DatosVitales
+type ContactoEmergenciaRow = RowDataPacket & ContactoEmergencia
+type PulseraRow = RowDataPacket & Pulsera
+
+interface NFCPublicDataRow extends RowDataPacket {
+  nombre: string | null
+  apellido: string | null
+  fecha_nacimiento: string | null
+  foto_url: string | null
+  alergias: string | null
+  medicacion: string | null
+  enfermedades_cronicas: string | null
+  grupo_sanguineo: string | null
+  peso: number | null
+  altura: number | null
+  observaciones_medicas: string | null
+  contacto_nombre: string | null
+  contacto_telefono: string | null
+  contacto_relacion: string | null
+  es_principal: boolean | null
+  grupo_sanguineo_url: string | null
+}
+
+interface DatabaseStatsRow extends RowDataPacket {
+  total_pulseras: number
+  pulseras_activas: number
+  total_usuarios: number
+  usuarios_activos: number
+  contactos_emergencia: number
+  sesiones_activas: number
+}
+export interface UserCompleteData {
+  usuario: Usuario
+  datosPersonales: DatosPersonales | null
+  datosVitales: DatosVitales | null
+  contactosEmergencia: ContactoEmergencia[]
+  pulsera: Pulsera | null
+}
+
+export interface NFCPublicData {
+  datosPersonales: {
+    nombre: string | null
+    apellido: string | null
+    fecha_nacimiento: string | null
+    foto_url: string | null
+    peso: number | null
+    altura: number | null
+  } | null
+  datosVitales: {
+    alergias: string | null
+    medicacion: string | null
+    enfermedades_cronicas: string | null
+    grupo_sanguineo: string | null
+    observaciones_medicas: string | null
+    grupo_sanguineo_url: string | null
+  } | null
+  contactosEmergencia: Array<{
+    nombre: string
+    telefono: string
+    relacion: string | null
+    es_principal: boolean
+  }>
+}
 
 // Utilidades para operaciones comunes de base de datos
 
@@ -8,7 +90,7 @@ export { executeQuery } from './database'
  */
 export const checkSerialExists = async (serial: string): Promise<boolean> => {
   try {
-    const result = await executeQuery<Array<{ count: number }>>(
+    const result = await executeQuery<CountRow[]>(
       'SELECT COUNT(*) as count FROM pulseras WHERE serial = ?',
       [serial]
     )
@@ -24,7 +106,7 @@ export const checkSerialExists = async (serial: string): Promise<boolean> => {
  */
 export const checkSerialActive = async (serial: string): Promise<boolean> => {
   try {
-    const result = await executeQuery<Array<{ is_active: boolean }>>(
+    const result = await executeQuery<SerialActiveRow[]>(
       'SELECT is_active FROM pulseras WHERE serial = ?',
       [serial]
     )
@@ -40,7 +122,7 @@ export const checkSerialActive = async (serial: string): Promise<boolean> => {
  */
 export const checkUsernameExists = async (username: string): Promise<boolean> => {
   try {
-    const result = await executeQuery<Array<{ count: number }>>(
+    const result = await executeQuery<CountRow[]>(
       'SELECT COUNT(*) as count FROM usuarios WHERE username = ?',
       [username]
     )
@@ -54,13 +136,13 @@ export const checkUsernameExists = async (username: string): Promise<boolean> =>
 /**
  * Obtener usuario por username
  */
-export const getUserByUsername = async (username: string) => {
+export const getUserByUsername = async (username: string): Promise<Usuario | null> => {
   try {
-    const result = await executeQuery(
+    const result = await executeQuery<UsuarioRow[]>(
       'SELECT * FROM usuarios WHERE username = ? AND is_active = TRUE',
       [username]
     )
-    return result[0] || null
+    return result[0] ?? null
   } catch (error) {
     console.error('Error obteniendo usuario:', error)
     return null
@@ -70,41 +152,47 @@ export const getUserByUsername = async (username: string) => {
 /**
  * Obtener datos completos de un usuario por ID
  */
-export const getUserCompleteData = async (userId: number) => {
+export const getUserCompleteData = async (userId: number): Promise<UserCompleteData | null> => {
   try {
-    const user = await executeQuery(
+    const users = await executeQuery<UsuarioRow[]>(
       'SELECT * FROM usuarios WHERE id = ?',
       [userId]
     )
     
-    if (!user[0]) return null
+    const user = users[0]
     
-    const personalData = await executeQuery(
+    if (!user) {
+      return null
+    }
+    
+    const personalData = await executeQuery<DatosPersonalesRow[]>(
       'SELECT * FROM datos_personales WHERE usuario_id = ?',
       [userId]
     )
     
-    const vitalData = await executeQuery(
+    const vitalData = await executeQuery<DatosVitalesRow[]>(
       'SELECT * FROM datos_vitales WHERE usuario_id = ?',
       [userId]
     )
     
-    const emergencyContacts = await executeQuery(
+    const emergencyContacts = await executeQuery<ContactoEmergenciaRow[]>(
       'SELECT * FROM contactos_emergencia WHERE usuario_id = ? AND is_active = TRUE ORDER BY orden',
       [userId]
     )
     
-    const pulsera = user[0].pulsera_id ? await executeQuery(
+    const pulseraRows = user.pulsera_id
+      ? await executeQuery<PulseraRow[]>(
       'SELECT * FROM pulseras WHERE id = ?',
-      [user[0].pulsera_id]
-    ) : null
+        [user.pulsera_id]
+      )
+      : null
     
     return {
-      usuario: user[0],
-      datosPersonales: personalData[0] || null,
-      datosVitales: vitalData[0] || null,
-      contactosEmergencia: emergencyContacts || [],
-      pulsera: pulsera ? pulsera[0] : null
+      usuario: user,
+      datosPersonales: personalData[0] ?? null,
+      datosVitales: vitalData[0] ?? null,
+      contactosEmergencia: emergencyContacts,
+      pulsera: pulseraRows ? pulseraRows[0] ?? null : null
     }
   } catch (error) {
     console.error('Error obteniendo datos completos del usuario:', error)
@@ -115,9 +203,9 @@ export const getUserCompleteData = async (userId: number) => {
 /**
  * Obtener datos públicos para NFC por serial
  */
-export const getNFCPublicData = async (serial: string) => {
+export const getNFCPublicData = async (serial: string): Promise<NFCPublicData | null> => {
   try {
-    const result = await executeQuery(`
+    const result = await executeQuery<NFCPublicDataRow[]>(`
       SELECT 
         dp.nombre,
         dp.apellido,
@@ -143,16 +231,19 @@ export const getNFCPublicData = async (serial: string) => {
       ORDER BY ce.es_principal DESC, ce.orden
     `, [serial])
     
-    if (!result.length) return null
+    if (!result.length) {
+      return null
+    }
     
-    // Organizar los datos
     const userData = result[0]
-    const contacts = result.map(row => ({
-      nombre: row.contacto_nombre,
-      telefono: row.contacto_telefono,
-      relacion: row.contacto_relacion,
-      es_principal: row.es_principal
-    })).filter(contact => contact.nombre) // Filtrar contactos válidos
+    const contacts = result
+      .filter(row => Boolean(row.contacto_nombre))
+      .map(row => ({
+        nombre: row.contacto_nombre as string,
+        telefono: row.contacto_telefono as string,
+        relacion: row.contacto_relacion,
+        es_principal: Boolean(row.es_principal)
+      }))
     
     return {
       datosPersonales: {
@@ -168,7 +259,8 @@ export const getNFCPublicData = async (serial: string) => {
         medicacion: userData.medicacion,
         enfermedades_cronicas: userData.enfermedades_cronicas,
         grupo_sanguineo: userData.grupo_sanguineo,
-        observaciones_medicas: userData.observaciones_medicas
+        observaciones_medicas: userData.observaciones_medicas,
+        grupo_sanguineo_url: userData.grupo_sanguineo_url
       },
       contactosEmergencia: contacts
     }
@@ -187,14 +279,19 @@ export const createAuditLog = async (
   usuarioId: number | null = null,
   ipAddress: string | null = null,
   userAgent: string | null = null,
-  datosAdicionales: any = null
+  datosAdicionales: unknown = null
 ) => {
   try {
-    await executeQuery(`
+    const serializedData =
+      datosAdicionales === null || datosAdicionales === undefined
+        ? null
+        : JSON.stringify(datosAdicionales)
+
+    await executeQuery<ResultSetHeader>(`
       INSERT INTO auditoria_logs 
       (usuario_id, evento, descripcion, ip_address, user_agent, datos_adicionales)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, [usuarioId, evento, descripcion, ipAddress, userAgent, JSON.stringify(datosAdicionales)])
+    `, [usuarioId, evento, descripcion, ipAddress, userAgent, serializedData])
   } catch (error) {
     console.error('Error creando log de auditoría:', error)
   }
@@ -205,10 +302,10 @@ export const createAuditLog = async (
  */
 export const cleanExpiredSessions = async () => {
   try {
-    const result = await executeQuery(
+    const result = await executeQuery<ResultSetHeader>(
       'DELETE FROM sesiones_usuarios WHERE expires_at < NOW()'
     )
-    return result.affectedRows || 0
+    return result.affectedRows ?? 0
   } catch (error) {
     console.error('Error limpiando sesiones expiradas:', error)
     return 0
@@ -218,9 +315,9 @@ export const cleanExpiredSessions = async () => {
 /**
  * Obtener estadísticas de la base de datos
  */
-export const getDatabaseStats = async () => {
+export const getDatabaseStats = async (): Promise<DatabaseStatsRow | null> => {
   try {
-    const stats = await executeQuery(`
+    const stats = await executeQuery<DatabaseStatsRow[]>(`
       SELECT 
         (SELECT COUNT(*) FROM pulseras) as total_pulseras,
         (SELECT COUNT(*) FROM pulseras WHERE is_active = TRUE) as pulseras_activas,
@@ -230,9 +327,9 @@ export const getDatabaseStats = async () => {
         (SELECT COUNT(*) FROM sesiones_usuarios WHERE is_active = TRUE) as sesiones_activas
     `)
     
-    return stats[0] || {}
+    return stats[0] ?? null
   } catch (error) {
     console.error('Error obteniendo estadísticas:', error)
-    return {}
+    return null
   }
 }

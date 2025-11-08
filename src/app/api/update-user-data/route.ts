@@ -1,9 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
+
 import { requireAuth } from '@/lib/auth'
 import { executeQuery } from '@/lib/database'
 import { createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
+
+type IdRow = RowDataPacket & { id: number }
+type NextOrderRow = RowDataPacket & { next_orden: number }
+
+type PersonalDataPayload = {
+  nombre: string
+  apellido: string
+  fecha_nacimiento: string
+  telefono: string
+  email: string
+}
+
+type VitalDataPayload = {
+  grupo_sanguineo?: string
+  alergias?: string
+  medicacion?: string
+  enfermedades_cronicas?: string
+  peso?: number | null
+  altura?: number | null
+  observaciones_medicas?: string
+}
+
+type ContactDataPayload = {
+  id?: number
+  nombre: string
+  telefono: string
+  relacion?: string
+  es_principal?: boolean
+}
+
+type UpdateRequestPayload =
+  | { tipo: 'personal'; datos: PersonalDataPayload }
+  | { tipo: 'vitales'; datos: VitalDataPayload }
+  | { tipo: 'contacto'; datos: ContactDataPayload }
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const isPersonalDataPayload = (value: unknown): value is PersonalDataPayload => {
+  if (!isObject(value)) return false
+  const { nombre, apellido, fecha_nacimiento, telefono, email } = value
+  return [nombre, apellido, fecha_nacimiento, telefono, email].every(field => typeof field === 'string')
+}
+
+const isVitalDataPayload = (value: unknown): value is VitalDataPayload => {
+  if (!isObject(value)) return false
+  const allowedKeys = [
+    'grupo_sanguineo',
+    'alergias',
+    'medicacion',
+    'enfermedades_cronicas',
+    'peso',
+    'altura',
+    'observaciones_medicas'
+  ]
+  return Object.keys(value).every(key => allowedKeys.includes(key))
+}
+
+const isContactDataPayload = (value: unknown): value is ContactDataPayload => {
+  if (!isObject(value)) return false
+  const { nombre, telefono } = value
+  return typeof nombre === 'string' && typeof telefono === 'string'
+}
+
+const isUpdateRequestPayload = (value: unknown): value is UpdateRequestPayload => {
+  if (!isObject(value)) return false
+  const { tipo, datos } = value as { tipo?: unknown; datos?: unknown }
+
+  switch (tipo) {
+    case 'personal':
+      return isPersonalDataPayload(datos)
+    case 'vitales':
+      return isVitalDataPayload(datos)
+    case 'contacto':
+      return isContactDataPayload(datos)
+    default:
+      return false
+  }
+}
 
 export const PUT = withCORS(async (request: NextRequest) => {
   try {
@@ -23,36 +104,37 @@ export const PUT = withCORS(async (request: NextRequest) => {
     
     // Obtener datos del cuerpo de la petición
     const body = await request.json()
-    const { tipo, datos } = body
     
-    if (!tipo || !datos) {
+    if (!isUpdateRequestPayload(body)) {
       return NextResponse.json(
         { error: 'Tipo y datos son requeridos' },
         { status: 400 }
       )
     }
     
-    let updateResult
+    const { tipo, datos } = body
+    
+    let updateResult: ResultSetHeader | undefined
     let auditDescription = ''
     
     if (tipo === 'personal') {
       const { nombre, apellido, fecha_nacimiento, telefono, email } = datos
       
       // Verificar si ya existen datos personales
-      const existingData = await executeQuery(
+      const existingData = await executeQuery<IdRow[]>(
         'SELECT id FROM datos_personales WHERE usuario_id = ?',
         [user.userId]
       )
       
-      if (existingData && (existingData as any[]).length > 0) {
+      if (existingData.length > 0) {
         // Actualizar datos existentes
-        updateResult = await executeQuery(
+        updateResult = await executeQuery<ResultSetHeader>(
           'UPDATE datos_personales SET nombre = ?, apellido = ?, fecha_nacimiento = ?, telefono = ?, email = ? WHERE usuario_id = ?',
           [nombre, apellido, fecha_nacimiento, telefono, email, user.userId]
         )
       } else {
         // Crear nuevos datos personales
-        updateResult = await executeQuery(
+        updateResult = await executeQuery<ResultSetHeader>(
           'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, telefono, email) VALUES (?, ?, ?, ?, ?, ?)',
           [user.userId, nombre, apellido, fecha_nacimiento, telefono, email]
         )
@@ -64,20 +146,20 @@ export const PUT = withCORS(async (request: NextRequest) => {
       const { grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura } = datos
       
       // Verificar si ya existen datos vitales
-      const existingData = await executeQuery(
+      const existingData = await executeQuery<IdRow[]>(
         'SELECT id FROM datos_vitales WHERE usuario_id = ?',
         [user.userId]
       )
       
-      if (existingData && (existingData as any[]).length > 0) {
+      if (existingData.length > 0) {
         // Actualizar datos existentes
-        updateResult = await executeQuery(
+        updateResult = await executeQuery<ResultSetHeader>(
           'UPDATE datos_vitales SET grupo_sanguineo = ?, alergias = ?, medicacion = ?, enfermedades_cronicas = ?, peso = ?, altura = ? WHERE usuario_id = ?',
           [grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura, user.userId]
         )
       } else {
         // Crear nuevos datos vitales
-        updateResult = await executeQuery(
+        updateResult = await executeQuery<ResultSetHeader>(
           'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [user.userId, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura]
         )
@@ -90,21 +172,21 @@ export const PUT = withCORS(async (request: NextRequest) => {
       
       if (id) {
         // Actualizar contacto existente
-        updateResult = await executeQuery(
+        updateResult = await executeQuery<ResultSetHeader>(
           'UPDATE contactos_emergencia SET nombre = ?, telefono = ?, relacion = ?, es_principal = ? WHERE id = ? AND usuario_id = ?',
           [nombre, telefono, relacion, es_principal, id, user.userId]
         )
         auditDescription = `Contacto de emergencia actualizado: ${nombre}`
       } else {
         // Crear nuevo contacto
-        const orden = await executeQuery(
+        const orden = await executeQuery<NextOrderRow[]>(
           'SELECT COALESCE(MAX(orden), 0) + 1 as next_orden FROM contactos_emergencia WHERE usuario_id = ?',
           [user.userId]
         )
         
-        updateResult = await executeQuery(
+        updateResult = await executeQuery<ResultSetHeader>(
           'INSERT INTO contactos_emergencia (usuario_id, nombre, telefono, relacion, es_principal, orden) VALUES (?, ?, ?, ?, ?, ?)',
-          [user.userId, nombre, telefono, relacion, es_principal, (orden as any)[0].next_orden]
+          [user.userId, nombre, telefono, relacion, es_principal, orden[0]?.next_orden ?? 1]
         )
         auditDescription = `Nuevo contacto de emergencia agregado: ${nombre}`
       }
