@@ -47,9 +47,18 @@ tgh/
    ```
 
 3. **Configurar variables de entorno**
+   Crea un archivo `.env.local` en la raíz del proyecto (está incluido en `.gitignore`) con las credenciales de tu entorno local. Ejemplo:
    ```bash
-   cp env.config.txt .env.local
-   # Editar .env.local con tus configuraciones
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+   JWT_SECRET=tu_clave_super_secreta
+   JWT_EXPIRES_IN=7d
+
+   POSTGRES_HOST=localhost
+   POSTGRES_PORT=3306
+   POSTGRES_USER=root
+  POSTGRES_PASSWORD=tu_password
+   POSTGRES_DATABASE=tgh_pulseras
    ```
 
 4. **Configurar base de datos**
@@ -73,7 +82,23 @@ tgh/
 
 ### Variables de Entorno
 
-Ver archivo `env.config.txt` para todas las variables necesarias.
+| Variable                        | Descripción                                            | Ejemplo local                         | Producción (Vercel / Hostinger / Supabase) |
+|---------------------------------|--------------------------------------------------------|---------------------------------------|-------------------------------------------|
+| `NEXT_PUBLIC_APP_URL`           | URL pública de la app                                  | `http://localhost:3000`               | `https://tu-dominio.vercel.app`           |
+| `JWT_SECRET`                    | Clave usada para firmar JWT                            | `tu_clave_super_secreta`              | valor aleatorio seguro                    |
+| `JWT_EXPIRES_IN`                | Tiempo de expiración del JWT                           | `7d`                                  | `7d` (o el valor que definas)             |
+| `POSTGRES_HOST`                 | Host del servidor de base de datos                     | `localhost`                           | `db.tu_proveedor.com`                     |
+| `POSTGRES_PORT`                 | Puerto de la base de datos                             | `3306` (o `5432` si es PostgreSQL)    | `3306`/`5432` según tu servicio           |
+| `POSTGRES_USER`                 | Usuario de la base de datos                            | `root`                                | usuario configurado en producción         |
+| `POSTGRES_PASSWORD`             | Contraseña de la base de datos                         | `tu_password`                         | contraseña del servicio                   |
+| `POSTGRES_DATABASE`             | Nombre de la base de datos                             | `tgh_pulseras`                        | nombre de la base en producción           |
+| `POSTGRES_URL` (opcional)       | Cadena de conexión completa (si tu proveedor la expone)| `postgres://...` o `mysql://...`      | URL completa del servicio                 |
+| `POSTGRES_URL_NON_POOLING` etc. | Variantes opcionales para poolers / Prisma / Supabase  | —                                     | URL que provea tu proveedor               |
+
+**Local:** crea/edita `.env.local` con los valores anteriores.  
+**Producción (Vercel):** en *Project Settings → Environment Variables* añade las mismas variables pero usando las credenciales de Hostinger. Tras guardarlas vuelve a desplegar (`vercel --prod` o desde el dashboard).
+
+> Nunca subas `.env.local` al repositorio. Si necesitas compartir los campos crea un archivo con placeholders (por ejemplo `env.example`) y distribúyelo sin credenciales reales.
 
 ### Base de Datos
 
