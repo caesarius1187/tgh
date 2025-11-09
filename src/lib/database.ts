@@ -56,14 +56,6 @@ const sslRejectUnauthorized = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED
   ? toBool(process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED)
   : false
 
-if (process.env.VERCEL) {
-  console.log('[DB] SSL configuration', {
-    POSTGRES_SSL: process.env.POSTGRES_SSL,
-    POSTGRES_SSL_REJECT_UNAUTHORIZED: process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED,
-    POSTGRES_URL: process.env.POSTGRES_URL ? 'defined' : 'undefined'
-  })
-}
-
 const baseConfig: PoolConfig = connectionUrl
   ? { connectionString: connectionUrl }
   : {
@@ -75,6 +67,9 @@ const baseConfig: PoolConfig = connectionUrl
     }
 
 if (useSSL) {
+  if (!sslRejectUnauthorized) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+  }
   baseConfig.ssl = {
     rejectUnauthorized: sslRejectUnauthorized
   }
