@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 
 import { requireAuth } from '@/lib/auth'
 import { executeQuery } from '@/lib/database'
@@ -7,8 +6,10 @@ import { createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
 
-type IdRow = RowDataPacket & { id: number }
-type NextOrderRow = RowDataPacket & { next_orden: number }
+export const runtime = 'nodejs'
+
+type IdRow = { id: number }
+type NextOrderRow = { next_orden: number }
 
 type PersonalDataPayload = {
   nombre: string
@@ -120,21 +121,21 @@ export const PUT = withCORS(async (request: NextRequest) => {
       const { nombre, apellido, fecha_nacimiento, telefono, email } = datos
       
       // Verificar si ya existen datos personales
-      const existingData = await executeQuery<IdRow[]>(
-        'SELECT id FROM datos_personales WHERE usuario_id = ?',
+      const { rows: existingData } = await executeQuery<IdRow>(
+        'SELECT id FROM datos_personales WHERE usuario_id = $1',
         [user.userId]
       )
       
       if (existingData.length > 0) {
         // Actualizar datos existentes
-        await executeQuery<ResultSetHeader>(
-          'UPDATE datos_personales SET nombre = ?, apellido = ?, fecha_nacimiento = ?, telefono = ?, email = ? WHERE usuario_id = ?',
+        await executeQuery(
+          'UPDATE datos_personales SET nombre = $1, apellido = $2, fecha_nacimiento = $3, telefono = $4, email = $5 WHERE usuario_id = $6',
           [nombre, apellido, fecha_nacimiento, telefono, email, user.userId]
         )
       } else {
         // Crear nuevos datos personales
-        await executeQuery<ResultSetHeader>(
-          'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, telefono, email) VALUES (?, ?, ?, ?, ?, ?)',
+        await executeQuery(
+          'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, telefono, email) VALUES ($1, $2, $3, $4, $5, $6)',
           [user.userId, nombre, apellido, fecha_nacimiento, telefono, email]
         )
       }
@@ -145,21 +146,21 @@ export const PUT = withCORS(async (request: NextRequest) => {
       const { grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura } = datos
       
       // Verificar si ya existen datos vitales
-      const existingData = await executeQuery<IdRow[]>(
-        'SELECT id FROM datos_vitales WHERE usuario_id = ?',
+      const { rows: existingData } = await executeQuery<IdRow>(
+        'SELECT id FROM datos_vitales WHERE usuario_id = $1',
         [user.userId]
       )
       
       if (existingData.length > 0) {
         // Actualizar datos existentes
-        await executeQuery<ResultSetHeader>(
-          'UPDATE datos_vitales SET grupo_sanguineo = ?, alergias = ?, medicacion = ?, enfermedades_cronicas = ?, peso = ?, altura = ? WHERE usuario_id = ?',
+        await executeQuery(
+          'UPDATE datos_vitales SET grupo_sanguineo = $1, alergias = $2, medicacion = $3, enfermedades_cronicas = $4, peso = $5, altura = $6 WHERE usuario_id = $7',
           [grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura, user.userId]
         )
       } else {
         // Crear nuevos datos vitales
-        await executeQuery<ResultSetHeader>(
-          'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        await executeQuery(
+          'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura) VALUES ($1, $2, $3, $4, $5, $6, $7)',
           [user.userId, grupo_sanguineo, alergias, medicacion, enfermedades_cronicas, peso, altura]
         )
       }
@@ -171,21 +172,21 @@ export const PUT = withCORS(async (request: NextRequest) => {
       
       if (id) {
         // Actualizar contacto existente
-        await executeQuery<ResultSetHeader>(
-          'UPDATE contactos_emergencia SET nombre = ?, telefono = ?, relacion = ?, es_principal = ? WHERE id = ? AND usuario_id = ?',
+        await executeQuery(
+          'UPDATE contactos_emergencia SET nombre = $1, telefono = $2, relacion = $3, es_principal = $4 WHERE id = $5 AND usuario_id = $6',
           [nombre, telefono, relacion, es_principal, id, user.userId]
         )
         auditDescription = `Contacto de emergencia actualizado: ${nombre}`
       } else {
         // Crear nuevo contacto
-        const orden = await executeQuery<NextOrderRow[]>(
-          'SELECT COALESCE(MAX(orden), 0) + 1 as next_orden FROM contactos_emergencia WHERE usuario_id = ?',
+        const { rows: orden } = await executeQuery<NextOrderRow>(
+          'SELECT COALESCE(MAX(orden), 0) + 1 as next_orden FROM contactos_emergencia WHERE usuario_id = $1',
           [user.userId]
         )
         
-        await executeQuery<ResultSetHeader>(
-          'INSERT INTO contactos_emergencia (usuario_id, nombre, telefono, relacion, es_principal, orden) VALUES (?, ?, ?, ?, ?, ?)',
-          [user.userId, nombre, telefono, relacion, es_principal, orden[0]?.next_orden ?? 1]
+        await executeQuery(
+          'INSERT INTO contactos_emergencia (usuario_id, nombre, telefono, relacion, es_principal, orden) VALUES ($1, $2, $3, $4, $5, $6)',
+          [user.userId, nombre, telefono, relacion, es_principal ?? false, orden[0]?.next_orden ?? 1]
         )
         auditDescription = `Nuevo contacto de emergencia agregado: ${nombre}`
       }

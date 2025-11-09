@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import { registerUserSchema, validateData } from '@/lib/validations'
 import { 
   checkSerialExists, 
@@ -7,10 +6,12 @@ import {
   checkUsernameExists,
   createAuditLog 
 } from '@/lib/db-utils'
-import { executeQuery } from '@/lib/database'
+import { executeQuery, getClient } from '@/lib/database'
 import { hashPassword, generateToken } from '@/lib/auth'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
+
+export const runtime = 'nodejs'
 
 export const POST = withCORS(async (request: NextRequest) => {
   try {
@@ -101,42 +102,53 @@ export const POST = withCORS(async (request: NextRequest) => {
     const passwordHash = await hashPassword(password)
     
     // Obtener ID de la pulsera
-    const pulseraResult = await executeQuery<Array<RowDataPacket & { id: number }>>(
-      'SELECT id FROM pulseras WHERE serial = ?',
+    const { rows: pulseraRows } = await executeQuery<{ id: number }>(
+      'SELECT id FROM pulseras WHERE serial = $1',
       [serial]
     )
     
-    if (!pulseraResult.length) {
+    if (!pulseraRows.length) {
       return NextResponse.json(
         { error: 'Error interno del servidor' },
         { status: 500 }
       )
     }
     
-    const pulseraId = pulseraResult[0].id
+    const pulseraId = pulseraRows[0].id
     
     // Iniciar transacción
-    const connection = await (await import('@/lib/database')).getConnection()
+    const client = await getClient()
     
     try {
-      await connection.beginTransaction()
+      await client.query('BEGIN')
       
       // Crear usuario
-      const [userResult] = await connection.execute<ResultSetHeader>(`
-        INSERT INTO usuarios (username, password_hash, pulsera_id, is_active)
-        VALUES (?, ?, ?, TRUE)
-      `, [username, passwordHash, pulseraId])
+      const userInsert = await client.query<{ id: number }>(
+        `
+          INSERT INTO usuarios (username, password_hash, pulsera_id, is_active)
+          VALUES ($1, $2, $3, TRUE)
+          RETURNING id
+        `,
+        [username, passwordHash, pulseraId]
+      )
       
-      const userId = userResult.insertId
+      const userId = userInsert.rows[0]?.id
+      
+      if (!userId) {
+        throw new Error('No se pudo obtener el ID del usuario creado')
+      }
       
       // Activar pulsera
       const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL}/nfc/${serial}`
       
-      await connection.execute(`
-        UPDATE pulseras 
-        SET is_active = TRUE, public_url = ?
-        WHERE id = ?
-      `, [publicUrl, pulseraId])
+      await client.query(
+        `
+          UPDATE pulseras 
+          SET is_active = TRUE, public_url = $1
+          WHERE id = $2
+        `,
+        [publicUrl, pulseraId]
+      )
       
       // Generar token JWT
       const token = generateToken({
@@ -145,13 +157,16 @@ export const POST = withCORS(async (request: NextRequest) => {
       })
       
       // Guardar sesión
-      await connection.execute(`
-        INSERT INTO sesiones_usuarios (usuario_id, token_hash, expires_at, ip_address, user_agent, is_active)
-        VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY), ?, ?, TRUE)
-      `, [userId, await hashPassword(token), ip, userAgent])
+      await client.query(
+        `
+          INSERT INTO sesiones_usuarios (usuario_id, token_hash, expires_at, ip_address, user_agent, is_active)
+          VALUES ($1, $2, NOW() + INTERVAL '7 days', $3, $4, TRUE)
+        `,
+        [userId, await hashPassword(token), ip, userAgent]
+      )
       
       // Confirmar transacción
-      await connection.commit()
+      await client.query('COMMIT')
       
       // Log del registro exitoso
       await createAuditLog(
@@ -174,10 +189,10 @@ export const POST = withCORS(async (request: NextRequest) => {
       })
       
     } catch (error) {
-      await connection.rollback()
+      await client.query('ROLLBACK')
       throw error
     } finally {
-      connection.release()
+      client.release()
     }
     
   } catch (error) {

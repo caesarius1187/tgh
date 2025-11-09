@@ -27,26 +27,33 @@
 
 ### **Paso 1: Configurar Variables de Entorno**
 ```bash
-# Crear archivo .env.local con:
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=tu_password_mysql
-DB_NAME=tgh_pulseras
-JWT_SECRET=tgh_pulseras_jwt_secret_key_2024_secure
+# Crear archivo .env.local con (ejemplo para Supabase CLI):
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+JWT_SECRET=tgh_pulseras_jwt_secret_key_2024_secure
+POSTGRES_URL=postgresql://postgres:postgres@localhost:54322/postgres
+POSTGRES_URL_NON_POOLING=postgresql://postgres:postgres@localhost:54322/postgres
+POSTGRES_PRISMA_URL=postgresql://postgres:postgres@localhost:54322/postgres?pgbouncer=true
+POSTGRES_HOST=localhost
+POSTGRES_PORT=54322
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DATABASE=postgres
+POSTGRES_SSL=false
+POSTGRES_SSL_REJECT_UNAUTHORIZED=false
+SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_local
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_local
+SUPABASE_JWT_SECRET=local_supabase_jwt_secret
 ```
 
 ### **Paso 2: Configurar Base de Datos**
 ```bash
-# Opción A: Script automático
-node Database/setup_database.js setup
+# Opción A: Supabase CLI (recomendado)
+supabase start
 
-# Opción B: Manual
-# 1. Crear base de datos tgh_pulseras
-# 2. Ejecutar Database/01_create_database.sql
-# 3. Ejecutar Database/02_create_tables.sql
-# 4. Ejecutar Database/03_insert_sample_data.sql
+# Opción B: Script SQL
+psql "$POSTGRES_URL_NON_POOLING" -f Database/exportacionlocalhost.sql
 ```
 
 ### **Paso 3: Iniciar Servidor**

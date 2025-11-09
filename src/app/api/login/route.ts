@@ -11,6 +11,8 @@ import {
 } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
 
+export const runtime = 'nodejs'
+
 export const POST = withCORS(async (request: NextRequest) => {
   try {
     // Obtener datos del body
@@ -137,14 +139,14 @@ export const POST = withCORS(async (request: NextRequest) => {
     
     // Actualizar último login
     await executeQuery(
-      'UPDATE usuarios SET last_login = NOW() WHERE id = ?',
+      'UPDATE usuarios SET last_login = NOW() WHERE id = $1',
       [user.id]
     )
     
     // Guardar sesión
     await executeQuery(`
       INSERT INTO sesiones_usuarios (usuario_id, token_hash, expires_at, ip_address, user_agent, is_active)
-      VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY), ?, ?, TRUE)
+      VALUES ($1, $2, NOW() + INTERVAL '7 days', $3, $4, TRUE)
     `, [user.id, await (await import('@/lib/auth')).hashPassword(token), ip, userAgent])
     
     // Log del login exitoso

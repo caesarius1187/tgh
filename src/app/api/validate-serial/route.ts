@@ -4,6 +4,8 @@ import { checkSerialExists, checkSerialActive, createAuditLog } from '@/lib/db-u
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
 
+export const runtime = 'nodejs'
+
 export const POST = withCORS(async (request: NextRequest) => {
   try {
     // Obtener datos del body

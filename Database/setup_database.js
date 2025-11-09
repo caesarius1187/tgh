@@ -7,26 +7,40 @@
 
 const fs = require('fs');
 const path = require('path');
-const mysql = require('mysql2/promise');
+const { Client } = require('pg');
 
 // Configuración de la base de datos
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  multipleStatements: true
+const toBool = (value) =>
+  typeof value === 'string' && ['true', '1', 'yes', 'y'].includes(value.toLowerCase());
+
+const baseConfig = {
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+  user: process.env.POSTGRES_USER || 'postgres',
+  password: process.env.POSTGRES_PASSWORD || ''
 };
 
+if (process.env.POSTGRES_SSL) {
+  baseConfig.ssl = {
+    rejectUnauthorized: toBool(process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED) ?? false
+  };
+}
+
+const targetDatabase = process.env.POSTGRES_DATABASE || 'postgres';
+
 async function setupDatabase() {
-  let connection;
+  let client;
   
   try {
     console.log('🚀 Iniciando configuración de la base de datos...');
     
-    // Conectar sin especificar base de datos
-    connection = await mysql.createConnection(dbConfig);
-    console.log('✅ Conectado a MySQL');
+    // Conectar a la base de datos destino
+    client = new Client({
+      ...baseConfig,
+      database: targetDatabase
+    });
+    await client.connect();
+    console.log('✅ Conectado a PostgreSQL');
     
     // Leer y ejecutar script de creación de base de datos
     console.log('📁 Creando base de datos...');
@@ -34,7 +48,7 @@ async function setupDatabase() {
       path.join(__dirname, '01_create_database.sql'), 
       'utf8'
     );
-    await connection.execute(createDbScript);
+    await client.query(createDbScript);
     console.log('✅ Base de datos creada');
     
     // Leer y ejecutar script de creación de tablas
@@ -43,7 +57,7 @@ async function setupDatabase() {
       path.join(__dirname, '02_create_tables.sql'), 
       'utf8'
     );
-    await connection.execute(createTablesScript);
+    await client.query(createTablesScript);
     console.log('✅ Tablas creadas');
     
     // Preguntar si insertar datos de prueba
@@ -65,7 +79,7 @@ async function setupDatabase() {
         path.join(__dirname, '03_insert_sample_data.sql'), 
         'utf8'
       );
-      await connection.execute(sampleDataScript);
+      await client.query(sampleDataScript);
       console.log('✅ Datos de prueba insertados');
     }
     
@@ -75,31 +89,32 @@ async function setupDatabase() {
     console.error('❌ Error durante la configuración:', error.message);
     process.exit(1);
   } finally {
-    if (connection) {
-      await connection.end();
+    if (client) {
+      await client.end();
     }
   }
 }
 
 // Función para verificar la conexión
 async function testConnection() {
-  let connection;
+  let client;
   
   try {
-    connection = await mysql.createConnection({
-      ...dbConfig,
-      database: process.env.DB_NAME || 'tgh_pulseras'
+    client = new Client({
+      ...baseConfig,
+      database: targetDatabase
     });
+    await client.connect();
     
-    await connection.execute('SELECT 1');
+    await client.query('SELECT 1');
     console.log('✅ Conexión a la base de datos exitosa');
     return true;
   } catch (error) {
     console.error('❌ Error de conexión:', error.message);
     return false;
   } finally {
-    if (connection) {
-      await connection.end();
+    if (client) {
+      await client.end();
     }
   }
 }
@@ -118,14 +133,16 @@ Comandos:
   help      Mostrar esta ayuda
 
 Variables de entorno:
-  DB_HOST     Host de MySQL (por defecto: localhost)
-  DB_PORT     Puerto de MySQL (por defecto: 3306)
-  DB_USER     Usuario de MySQL (por defecto: root)
-  DB_PASSWORD Contraseña de MySQL
-  DB_NAME     Nombre de la base de datos (por defecto: tgh_pulseras)
+  POSTGRES_HOST     Host de PostgreSQL (por defecto: localhost)
+  POSTGRES_PORT     Puerto de PostgreSQL (por defecto: 5432)
+  POSTGRES_USER     Usuario de PostgreSQL (por defecto: postgres)
+  POSTGRES_PASSWORD Contraseña de PostgreSQL
+  POSTGRES_DATABASE Nombre de la base de datos (por defecto: postgres)
+  POSTGRES_SSL      true/false si se requiere SSL
+  POSTGRES_SSL_REJECT_UNAUTHORIZED  true/false para validar certificados
 
 Ejemplo:
-  DB_PASSWORD=mi_password node Database/setup_database.js
+  POSTGRES_PASSWORD=mi_password node Database/setup_database.js
 `);
 }
 

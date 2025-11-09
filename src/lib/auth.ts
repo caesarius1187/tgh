@@ -1,7 +1,6 @@
 import jwt, { type Secret, type SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { NextRequest } from 'next/server'
-import type { ResultSetHeader } from 'mysql2/promise'
 
 // Configuración JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production'
@@ -188,10 +187,10 @@ export const generateRefreshToken = (): string => {
 export const cleanExpiredTokens = async (): Promise<number> => {
   try {
     const { executeQuery } = await import('./database')
-    const result = await executeQuery<ResultSetHeader>(
+    const { rowCount } = await executeQuery(
       'DELETE FROM sesiones_usuarios WHERE expires_at < NOW()'
     )
-    return result.affectedRows ?? 0
+    return rowCount ?? 0
   } catch (error) {
     console.error('Error limpiando tokens expirados:', error)
     return 0

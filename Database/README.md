@@ -1,159 +1,114 @@
-# Base de Datos TGH Pulseras
+# Base de Datos TGH Pulseras (PostgreSQL / Supabase)
 
-Este directorio contiene todos los archivos relacionados con la configuración y gestión de la base de datos MySQL para el sistema TGH Pulseras.
+Este directorio contiene todos los archivos relacionados con la configuración y gestión de la base de datos PostgreSQL utilizada por el sistema TGH Pulseras. Puedes trabajar conectando contra Supabase Cloud o usando el stack local que levanta el Supabase CLI (Docker).
 
 ## 📁 Archivos
 
 ### Scripts SQL
-- `01_create_database.sql` - Crear la base de datos
-- `02_create_tables.sql` - Crear todas las tablas
-- `03_insert_sample_data.sql` - Insertar datos de prueba
+- `01_create_database.sql` – Creación inicial de la base de datos
+- `02_create_tables.sql` – Definición de tablas y relaciones
+- `03_insert_sample_data.sql` – Datos de ejemplo
+- `exportacionlocalhost.sql` – Dump completo listo para cargar en PostgreSQL
 
 ### Configuración
-- `database.env` - Variables de entorno para la base de datos
-- `setup_database.js` - Script de utilidad para configurar la BD
-- `README.md` - Este archivo de documentación
+- `database.env` – Plantilla de variables de entorno
+- `setup_database.js` – Script de utilidad (ahora usa PostgreSQL)
+- `README.md` – Este documento
 
 ### Documentación
-- `DER.txt` - Diseño Entidad-Relación completo
+- `DER.txt` – Modelo entidad–relación
 
-## 🚀 Configuración Rápida
+## 🚀 Configuración rápida
 
-### 1. Configurar variables de entorno
+### 1. Variables de entorno
 ```bash
-# Copiar archivo de configuración
 cp Database/database.env .env.local
-
-# Editar con tus credenciales de MySQL
-# DB_PASSWORD=tu_password_aqui
+# Edita .env.local con tus credenciales de PostgreSQL/Supabase
+# Ejemplo local (Supabase CLI):
+# POSTGRES_URL=postgresql://postgres:postgres@localhost:54322/postgres
+# SUPABASE_URL=http://127.0.0.1:54321
 ```
 
-### 2. Ejecutar configuración automática
+### 2. Preparar la base de datos
 ```bash
-# Configurar base de datos completa
-node Database/setup_database.js
+# Opción recomendada: Supabase CLI
+supabase start
 
-# O solo probar conexión
-node Database/setup_database.js test
+# Opción manual: importar dump
+psql "$POSTGRES_URL_NON_POOLING" -f Database/exportacionlocalhost.sql
 ```
 
-### 3. Configuración manual (alternativa)
+### 3. Ejecutar script de utilidad (opcional)
 ```bash
-# Conectar a MySQL
-mysql -u root -p
-
-# Ejecutar scripts en orden
-source Database/01_create_database.sql;
-source Database/02_create_tables.sql;
-source Database/03_insert_sample_data.sql;
+# Configurar o probar la base de datos con Node.js
+node Database/setup_database.js setup   # aplica scripts SQL
+node Database/setup_database.js test    # prueba la conexión
 ```
 
-## 📊 Estructura de la Base de Datos
+## 📊 Estructura principal
 
-### Tablas principales:
-1. **pulseras** - Información de pulseras NFC
-2. **usuarios** - Datos de usuarios registrados
-3. **datos_personales** - Información personal
-4. **datos_vitales** - Información médica
-5. **contactos_emergencia** - Contactos de emergencia
-6. **auditoria_logs** - Logs del sistema
-7. **sesiones_usuarios** - Gestión de sesiones
+Tablas clave:
+1. **pulseras** – Chips NFC
+2. **usuarios** – Credenciales y estado
+3. **datos_personales** – Información personal
+4. **datos_vitales** – Información médica
+5. **contactos_emergencia** – Contactos asociados
+6. **auditoria_logs** – Eventos de auditoría
+7. **sesiones_usuarios** – Tokens/ sesiones activas
 
-### Relaciones:
-- 1 Usuario ↔ 1 Pulsera (opcional)
-- 1 Usuario ↔ 1 Datos Personales
-- 1 Usuario ↔ 1 Datos Vitales
-- 1 Usuario ↔ N Contactos de Emergencia
-- 1 Usuario ↔ N Sesiones
-- 1 Usuario ↔ N Logs de Auditoría
+Relaciones destacadas:
+- Usuario ↔ Pulsera (1:1 opcional)
+- Usuario ↔ Datos personales (1:1)
+- Usuario ↔ Datos vitales (1:1)
+- Usuario ↔ Contactos de emergencia (1:N)
+- Usuario ↔ Sesiones / Logs (1:N)
 
-## 🔧 Scripts de Utilidad
+## 🛠️ Comandos útiles
 
-### setup_database.js
-Script principal para configurar la base de datos:
-
+### Consultar estructura con psql
 ```bash
-# Configuración completa
-node Database/setup_database.js setup
-
-# Probar conexión
-node Database/setup_database.js test
-
-# Mostrar ayuda
-node Database/setup_database.js help
+psql "$POSTGRES_URL_NON_POOLING"
+\dt
+\d usuarios
 ```
 
-## 📝 Datos de Prueba
-
-El script `03_insert_sample_data.sql` incluye:
-
-- **5 pulseras** con seriales TGH001-TGH005
-- **2 usuarios** (admin, testuser) con contraseña 'password123'
-- **Datos personales** completos para ambos usuarios
-- **Datos vitales** con información médica de ejemplo
-- **Contactos de emergencia** para cada usuario
-- **Logs de auditoría** de ejemplo
-
-### Credenciales de prueba:
-- **Usuario:** admin / **Contraseña:** password123
-- **Usuario:** testuser / **Contraseña:** password123
-
-## 🛠️ Comandos Útiles
-
-### Verificar estructura:
+### Limpiar datos de prueba
 ```sql
-USE tgh_pulseras;
-SHOW TABLES;
-DESCRIBE pulseras;
+TRUNCATE auditoria_logs,
+         sesiones_usuarios,
+         contactos_emergencia,
+         datos_vitales,
+         datos_personales,
+         usuarios,
+         pulseras
+RESTART IDENTITY CASCADE;
 ```
 
-### Limpiar datos de prueba:
-```sql
-USE tgh_pulseras;
-DELETE FROM auditoria_logs;
-DELETE FROM sesiones_usuarios;
-DELETE FROM contactos_emergencia;
-DELETE FROM datos_vitales;
-DELETE FROM datos_personales;
-DELETE FROM usuarios;
-DELETE FROM pulseras;
-```
-
-### Backup de la base de datos:
+### Backup / restore
 ```bash
-mysqldump -u root -p tgh_pulseras > backup_$(date +%Y%m%d_%H%M%S).sql
+# Backup
+pg_dump "$POSTGRES_URL_NON_POOLING" > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore
+psql "$POSTGRES_URL_NON_POOLING" -f backup_20231201_120000.sql
 ```
 
-### Restaurar backup:
-```bash
-mysql -u root -p tgh_pulseras < backup_20231201_120000.sql
-```
+## 🔒 Seguridad y buenas prácticas
 
-## 🔒 Seguridad
+- Usa variables de entorno distintas para local y producción.
+- Al desplegar en producción habilita SSL (`POSTGRES_SSL=true`).
+- No compartas claves `SUPABASE_SERVICE_ROLE_KEY` o `SUPABASE_JWT_SECRET`.
+- Revisa los logs en `auditoria_logs` para auditorías de acceso.
 
-- Las contraseñas se almacenan hasheadas con bcrypt
-- Se registran todos los eventos importantes
-- Validaciones a nivel de base de datos
-- Índices optimizados para consultas frecuentes
+## 🚨 Problemas comunes
 
-## 📈 Performance
+| Problema | Solución |
+|----------|----------|
+| `The server does not support SSL connections` | Establece `POSTGRES_SSL=false` (entornos locales). |
+| No conecta a Supabase Cloud | Verifica `POSTGRES_URL` / `POSTGRES_PASSWORD` y que `sslmode=require` esté presente. |
+| Contenedores locales no inician | Asegúrate de que Docker Desktop esté activo y vuelve a ejecutar `supabase start`. |
+| Falta de datos | Importa `Database/exportacionlocalhost.sql` o ejecuta `03_insert_sample_data.sql`. |
 
-- Pool de conexiones configurado
-- Índices en campos críticos
-- Charset utf8mb4 para compatibilidad completa
-- Engine InnoDB para transacciones
+---
 
-## 🚨 Troubleshooting
-
-### Error de conexión:
-- Verificar que MySQL esté ejecutándose
-- Confirmar credenciales en `.env.local`
-- Verificar puerto (por defecto 3306)
-
-### Error de permisos:
-- Usuario debe tener permisos para crear bases de datos
-- Ejecutar como administrador si es necesario
-
-### Error de charset:
-- Verificar que MySQL soporte utf8mb4
-- Actualizar versión de MySQL si es necesario
+Mantén este directorio sincronizado con los scripts que realmente uses (Supabase CLI + dump SQL). Cualquier contribución o cambio de esquema debería reflejarse aquí para que el resto del equipo pueda reproducir el entorno fácilmente.

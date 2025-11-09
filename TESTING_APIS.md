@@ -9,20 +9,17 @@ Esta guía te ayudará a probar todas las APIs que hemos desarrollado.
 # Copiar configuración de entorno
 copy env-setup.txt .env.local
 
-# Editar .env.local con tus credenciales de MySQL
-# Especialmente: DB_PASSWORD=tu_password_aqui
+# Editar .env.local con tus credenciales de PostgreSQL/Supabase
+# Especialmente: POSTGRES_PASSWORD=tu_password_aqui
 ```
 
 ### 2. Configurar Base de Datos
 ```bash
-# Opción A: Usar script automático
-node Database/setup_database.js setup
+# Opción A: Usar Supabase CLI
+supabase start
 
-# Opción B: Configuración manual
-# 1. Conectar a MySQL
-# 2. Ejecutar Database/01_create_database.sql
-# 3. Ejecutar Database/02_create_tables.sql
-# 4. Ejecutar Database/03_insert_sample_data.sql
+# Opción B: Configuración manual (PostgreSQL)
+psql "$POSTGRES_URL_NON_POOLING" -f Database/exportacionlocalhost.sql
 ```
 
 ### 3. Iniciar Servidor de Desarrollo

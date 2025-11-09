@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { ResultSetHeader } from 'mysql2/promise'
 import { requireAuth } from '@/lib/auth'
 import { executeQuery, createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
@@ -7,6 +6,8 @@ import { withCORS } from '@/lib/cors'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
+
+export const runtime = 'nodejs'
 
 // Configuración de archivos
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -114,31 +115,33 @@ export const POST = withCORS(async (request: NextRequest) => {
     await writeFile(filePath, buffer)
     
     // Actualizar base de datos según el tipo
-    let updateResult: ResultSetHeader | undefined
+    let updateRowCount = 0
     
     if (tipo === 'foto') {
-      updateResult = await executeQuery<ResultSetHeader>(
-        'UPDATE datos_personales SET foto_url = ? WHERE usuario_id = ?',
+      const { rowCount } = await executeQuery(
+        'UPDATE datos_personales SET foto_url = $1 WHERE usuario_id = $2',
         [fileUrl, user.userId]
       )
+      updateRowCount = rowCount ?? 0
     } else if (tipo === 'certificado_grupo_sanguineo') {
-      updateResult = await executeQuery<ResultSetHeader>(
-        'UPDATE datos_vitales SET grupo_sanguineo_url = ? WHERE usuario_id = ?',
+      const { rowCount } = await executeQuery(
+        'UPDATE datos_vitales SET grupo_sanguineo_url = $1 WHERE usuario_id = $2',
         [fileUrl, user.userId]
       )
+      updateRowCount = rowCount ?? 0
     }
     
     // Verificar que la actualización fue exitosa
-    if (updateResult && updateResult.affectedRows === 0) {
+    if (updateRowCount === 0) {
       // Si no hay datos personales/vitales, crear el registro
       if (tipo === 'foto') {
-        await executeQuery<ResultSetHeader>(
-          'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, foto_url) VALUES (?, ?, ?, ?, ?)',
+        await executeQuery(
+          'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, foto_url) VALUES ($1, $2, $3, $4, $5)',
           [user.userId, '', '', '1900-01-01', fileUrl]
         )
       } else if (tipo === 'certificado_grupo_sanguineo') {
-        await executeQuery<ResultSetHeader>(
-          'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo_url) VALUES (?, ?)',
+        await executeQuery(
+          'INSERT INTO datos_vitales (usuario_id, grupo_sanguineo_url) VALUES ($1, $2)',
           [user.userId, fileUrl]
         )
       }

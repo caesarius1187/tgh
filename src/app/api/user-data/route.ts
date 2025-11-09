@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { ResultSetHeader } from 'mysql2/promise'
 
 import { requireAuth } from '@/lib/auth'
 import { getUserCompleteData, createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
+import { executeQuery } from '@/lib/database'
 
-type UpdatePersonalPayload = Partial<Record<'nombre' | 'apellido' | 'fecha_nacimiento' | 'telefono' | 'email', string>>
+export const runtime = 'nodejs'
+
+type UpdatePersonalPayload = Partial<
+  Record<'nombre' | 'apellido' | 'fecha_nacimiento' | 'telefono' | 'email', string>
+>
 
 type UpdateVitalPayload = Partial<
   Record<
@@ -79,23 +83,21 @@ const isUpdateRequestPayload = (value: unknown): value is UpdateRequestPayload =
 
 export const GET = withCORS(async (request: NextRequest) => {
   try {
-    // Verificar autenticación
     const authResult = requireAuth(request)
-    
+
     if (!authResult.user) {
       return NextResponse.json(
         { error: authResult.error || 'No autorizado' },
         { status: 401 }
       )
     }
-    
+
     const { user } = authResult
     const ip = getClientIP(request)
     const userAgent = request.headers.get('user-agent')
-    
-    // Obtener datos completos del usuario
+
     const userData = await getUserCompleteData(user.userId)
-    
+
     if (!userData) {
       await createAuditLog(
         'user_data_not_found',
@@ -105,14 +107,13 @@ export const GET = withCORS(async (request: NextRequest) => {
         userAgent,
         { username: user.username, userId: user.userId }
       )
-      
+
       return NextResponse.json(
         { error: 'Datos de usuario no encontrados' },
         { status: 404 }
       )
     }
-    
-    // Log del acceso a datos
+
     await createAuditLog(
       'user_data_accessed',
       `Acceso a datos personales: ${user.username}`,
@@ -121,8 +122,7 @@ export const GET = withCORS(async (request: NextRequest) => {
       userAgent,
       { username: user.username }
     )
-    
-    // Retornar datos sin información sensible
+
     const response = {
       usuario: {
         id: userData.usuario.id,
@@ -135,21 +135,21 @@ export const GET = withCORS(async (request: NextRequest) => {
       datosPersonales: userData.datosPersonales,
       datosVitales: userData.datosVitales,
       contactosEmergencia: userData.contactosEmergencia,
-      pulsera: userData.pulsera ? {
-        id: userData.pulsera.id,
-        serial: userData.pulsera.serial,
-        is_active: userData.pulsera.is_active,
-        public_url: userData.pulsera.public_url,
-        created_at: userData.pulsera.created_at
-      } : null
+      pulsera: userData.pulsera
+        ? {
+            id: userData.pulsera.id,
+            serial: userData.pulsera.serial,
+            is_active: userData.pulsera.is_active,
+            public_url: userData.pulsera.public_url,
+            created_at: userData.pulsera.created_at
+          }
+        : null
     }
-    
+
     return NextResponse.json(response)
-    
   } catch (error) {
     console.error('Error en user-data GET:', error)
-    
-    // Log del error
+
     await createAuditLog(
       'user_data_error',
       'Error interno al obtener datos de usuario',
@@ -158,7 +158,7 @@ export const GET = withCORS(async (request: NextRequest) => {
       request.headers.get('user-agent'),
       { error: error instanceof Error ? error.message : 'Unknown error' }
     )
-    
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -168,33 +168,31 @@ export const GET = withCORS(async (request: NextRequest) => {
 
 export const PUT = withCORS(async (request: NextRequest) => {
   try {
-    // Verificar autenticación
     const authResult = requireAuth(request)
-    
+
     if (!authResult.user) {
       return NextResponse.json(
         { error: authResult.error || 'No autorizado' },
         { status: 401 }
       )
     }
-    
+
     const { user } = authResult
     const ip = getClientIP(request)
     const userAgent = request.headers.get('user-agent')
-    
-    // Obtener datos del body
+
     const body = await request.json()
-    
+
     if (!isUpdateRequestPayload(body)) {
       return NextResponse.json(
         { error: 'Tipo y datos son requeridos' },
         { status: 400 }
       )
     }
-    
+
     const { tipo, datos } = body
-    let updateResult
-    
+    let updateResult: UpdateOutcome<unknown>
+
     switch (tipo) {
       case 'personales':
         updateResult = await updatePersonalData(user.userId, datos)
@@ -211,15 +209,14 @@ export const PUT = withCORS(async (request: NextRequest) => {
           { status: 400 }
         )
     }
-    
+
     if (!updateResult.success) {
       return NextResponse.json(
         { error: updateResult.error },
         { status: 400 }
       )
     }
-    
-    // Log de la actualización
+
     await createAuditLog(
       'user_data_updated',
       `Datos ${tipo} actualizados: ${user.username}`,
@@ -228,17 +225,15 @@ export const PUT = withCORS(async (request: NextRequest) => {
       userAgent,
       { username: user.username, tipo, datos: Object.keys(datos) }
     )
-    
+
     return NextResponse.json({
       success: true,
       message: `Datos ${tipo} actualizados exitosamente`,
       data: updateResult.data
     })
-    
   } catch (error) {
     console.error('Error en user-data PUT:', error)
-    
-    // Log del error
+
     await createAuditLog(
       'user_data_update_error',
       'Error interno al actualizar datos de usuario',
@@ -247,7 +242,7 @@ export const PUT = withCORS(async (request: NextRequest) => {
       request.headers.get('user-agent'),
       { error: error instanceof Error ? error.message : 'Unknown error' }
     )
-    
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -255,14 +250,11 @@ export const PUT = withCORS(async (request: NextRequest) => {
   }
 })
 
-// Funciones helper para actualizar datos
 async function updatePersonalData(
   userId: number,
   datos: UpdatePersonalPayload
 ): Promise<UpdateOutcome<UpdatePersonalPayload>> {
   try {
-    const { executeQuery } = await import('@/lib/database')
-    
     const allowedFields: Array<keyof UpdatePersonalPayload> = [
       'nombre',
       'apellido',
@@ -271,23 +263,24 @@ async function updatePersonalData(
       'email'
     ]
     const campos = allowedFields.filter(campo => datos[campo] !== undefined)
-    
+
     if (campos.length === 0) {
       return { success: false, error: 'No hay campos válidos para actualizar' }
     }
-    
-    const setClause = campos.map(campo => `${campo} = ?`).join(', ')
-    const values: Array<string | number | null> = campos.map(campo => {
-      const value = datos[campo]
-      return value === undefined ? null : (value as string | number | null)
-    })
-    values.push(userId)
-    
-    await executeQuery<ResultSetHeader>(
-      `UPDATE datos_personales SET ${setClause} WHERE usuario_id = ?`,
-      values as Array<string | number | null>
+
+    const setClause = campos
+      .map((campo, index) => `${campo} = $${index + 1}`)
+      .join(', ')
+    const values: Array<string | number | null> = campos.map(campo =>
+      datos[campo] === undefined ? null : (datos[campo] as string)
     )
-    
+    values.push(userId)
+
+    await executeQuery(
+      `UPDATE datos_personales SET ${setClause} WHERE usuario_id = $${campos.length + 1}`,
+      values
+    )
+
     return { success: true, data: datos }
   } catch (error) {
     return { success: false, error: 'Error actualizando datos personales' }
@@ -299,8 +292,6 @@ async function updateVitalData(
   datos: UpdateVitalPayload
 ): Promise<UpdateOutcome<UpdateVitalPayload>> {
   try {
-    const { executeQuery } = await import('@/lib/database')
-    
     const allowedFields: Array<keyof UpdateVitalPayload> = [
       'alergias',
       'medicacion',
@@ -311,23 +302,22 @@ async function updateVitalData(
       'observaciones_medicas'
     ]
     const campos = allowedFields.filter(campo => datos[campo] !== undefined)
-    
+
     if (campos.length === 0) {
       return { success: false, error: 'No hay campos válidos para actualizar' }
     }
-    
-    const setClause = campos.map(campo => `${campo} = ?`).join(', ')
-    const values: Array<string | number | null> = campos.map(campo => {
-      const value = datos[campo]
-      return value === undefined ? null : (value as string | number | null)
-    })
+
+    const setClause = campos
+      .map((campo, index) => `${campo} = $${index + 1}`)
+      .join(', ')
+    const values = campos.map(campo => datos[campo] ?? null)
     values.push(userId)
-    
-    await executeQuery<ResultSetHeader>(
-      `UPDATE datos_vitales SET ${setClause} WHERE usuario_id = ?`,
-      values as Array<string | number | null>
+
+    await executeQuery(
+      `UPDATE datos_vitales SET ${setClause} WHERE usuario_id = $${campos.length + 1}`,
+      values
     )
-    
+
     return { success: true, data: datos }
   } catch (error) {
     return { success: false, error: 'Error actualizando datos vitales' }
@@ -339,21 +329,19 @@ async function updateEmergencyContacts(
   contactos: EmergencyContactPayload[]
 ): Promise<UpdateOutcome<EmergencyContactPayload[]>> {
   try {
-    const { executeQuery } = await import('@/lib/database')
-    
-    // Eliminar contactos existentes
-    await executeQuery<ResultSetHeader>(
-      'DELETE FROM contactos_emergencia WHERE usuario_id = ?',
+    await executeQuery(
+      'DELETE FROM contactos_emergencia WHERE usuario_id = $1',
       [userId]
     )
-    
-    // Insertar nuevos contactos
+
     for (let i = 0; i < contactos.length; i++) {
       const contacto = contactos[i]
-      await executeQuery<ResultSetHeader>(
-        `INSERT INTO contactos_emergencia 
+      await executeQuery(
+        `
+        INSERT INTO contactos_emergencia 
          (usuario_id, nombre, telefono, relacion, es_principal, orden, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
+         VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+      `,
         [
           userId,
           contacto.nombre,
@@ -364,14 +352,13 @@ async function updateEmergencyContacts(
         ]
       )
     }
-    
+
     return { success: true, data: contactos }
   } catch (error) {
     return { success: false, error: 'Error actualizando contactos de emergencia' }
   }
 }
 
-// Manejar otros métodos HTTP
 export const POST = () => {
   return NextResponse.json(
     { error: 'Método no permitido' },
@@ -385,3 +372,4 @@ export const DELETE = () => {
     { status: 405 }
   )
 }
+

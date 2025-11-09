@@ -1,21 +1,26 @@
-# Configuración de variables de entorno para testing
-# Copia este contenido a .env.local
+# Variables de entorno de ejemplo para testing local con Supabase
+# Copia este contenido a .env.local y personaliza los valores
 
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=tgh_pulseras
-
-DATABASE_URL=mysql://root:@localhost:3306/tgh_pulseras
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 JWT_SECRET=tgh_pulseras_jwt_secret_key_2024_secure
 JWT_EXPIRES_IN=7d
 
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=tgh_nextauth_secret_2024
+# PostgreSQL local (Supabase CLI)
+POSTGRES_HOST=localhost
+POSTGRES_PORT=54322
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DATABASE=postgres
+POSTGRES_SSL=false
+POSTGRES_SSL_REJECT_UNAUTHORIZED=false
+POSTGRES_URL=postgresql://postgres:postgres@localhost:54322/postgres
+POSTGRES_URL_NON_POOLING=postgresql://postgres:postgres@localhost:54322/postgres
+POSTGRES_PRISMA_URL=postgresql://postgres:postgres@localhost:54322/postgres?pgbouncer=true
 
-UPLOAD_DIR=./public/uploads
-MAX_FILE_SIZE=5242880
-
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Claves Supabase locales (generadas por `supabase start`)
+SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_local
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_local
+SUPABASE_JWT_SECRET=local_supabase_jwt_secret
