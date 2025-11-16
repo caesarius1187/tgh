@@ -24,8 +24,10 @@ async function ensureBucketExists() {
     throw new Error(`No se pudo listar buckets de Supabase: ${listError.message}`)
   }
 
-  const exists = buckets?.some((bucket) => bucket.name === STORAGE_BUCKET)
-  if (!exists) {
+  const existingBucket = buckets?.find((bucket) => bucket.name === STORAGE_BUCKET)
+  
+  if (!existingBucket) {
+    // Crear el bucket si no existe
     const { error: createError } = await supabaseAdmin.storage.createBucket(STORAGE_BUCKET, {
       public: true
     })
@@ -33,6 +35,11 @@ async function ensureBucketExists() {
     if (createError) {
       throw new Error(`No se pudo crear el bucket ${STORAGE_BUCKET}: ${createError.message}`)
     }
+  } else if (!existingBucket.public) {
+    // Si el bucket existe pero no es público, intentar actualizarlo
+    // Nota: Supabase puede no permitir cambiar esto después de crear el bucket
+    // En ese caso, el bucket debe recrearse manualmente
+    console.warn(`El bucket ${STORAGE_BUCKET} existe pero no está configurado como público. Asegúrate de que el bucket sea público en la configuración de Supabase.`)
   }
 
   bucketEnsured = true
@@ -143,15 +150,25 @@ export const POST = withCORS(async (request: NextRequest) => {
       throw new Error('No se obtuvo la ruta del archivo subido')
     }
 
-    const { data: publicData } = supabaseAdmin.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(uploadData.path)
-
-    const fileUrl = publicData?.publicUrl
-
-    if (!fileUrl) {
-      throw new Error('No se pudo obtener la URL pública del archivo')
+    // Construir la URL pública manualmente para asegurar el formato correcto
+    // Formato: {SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{PATH}
+    const supabaseUrl = process.env.SUPABASE_URL
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL no está configurada')
     }
+    
+    // Asegurar que la URL base no termine con /
+    const baseUrl = supabaseUrl.replace(/\/$/, '')
+    
+    // uploadData.path puede incluir o no el nombre del bucket
+    // Si incluye el nombre del bucket, lo removemos
+    let filePath = uploadData.path
+    if (filePath.startsWith(`${STORAGE_BUCKET}/`)) {
+      filePath = filePath.substring(STORAGE_BUCKET.length + 1)
+    }
+    
+    // Construir la URL pública
+    const fileUrl = `${baseUrl}/storage/v1/object/public/${STORAGE_BUCKET}/${filePath}`
 
     let updateRowCount = 0
 

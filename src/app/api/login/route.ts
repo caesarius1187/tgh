@@ -149,6 +149,18 @@ export const POST = withCORS(async (request: NextRequest) => {
       VALUES ($1, $2, NOW() + INTERVAL '7 days', $3, $4, TRUE)
     `, [user.id, await (await import('@/lib/auth')).hashPassword(token), ip, userAgent])
     
+    // Obtener serial de la pulsera asociada
+    let serial: string | undefined = undefined
+    if (user.pulsera_id) {
+      const { rows: pulseraRows } = await executeQuery<{ serial: string }>(
+        'SELECT serial FROM pulseras WHERE id = $1',
+        [user.pulsera_id]
+      )
+      if (pulseraRows.length > 0) {
+        serial = pulseraRows[0].serial
+      }
+    }
+    
     // Log del login exitoso
     await createAuditLog(
       'login_success',
@@ -166,6 +178,7 @@ export const POST = withCORS(async (request: NextRequest) => {
       user: {
         id: user.id,
         username: user.username,
+        serial: serial,
         lastLogin: user.last_login
       }
     })

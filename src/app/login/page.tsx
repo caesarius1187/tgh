@@ -4,6 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import Navbar from '@/components/Navbar'
+import { HexagonalPatternCSS } from '@/components/HexagonalPattern'
+import Card, { CardHeader, CardBody, CardFooter } from '@/components/Card'
+import Input from '@/components/Input'
+import Button from '@/components/Button'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -35,87 +40,94 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Iniciar Sesión
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Accede a tu cuenta de TGH Pulseras
-          </p>
-        </div>
+    <>
+      <Navbar showLogin={false} showLogout={false} />
+      <div className="min-h-screen flex items-center justify-center bg-tgh-teal relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
+        {/* Patrón hexagonal de fondo */}
+        <HexagonalPatternCSS />
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Usuario
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Ingresa tu usuario"
-              />
-            </div>
+        <div className="max-w-md w-full space-y-8 relative z-10">
+          <Card className="bg-white/95 backdrop-blur-sm">
+            <CardHeader
+              title="Iniciar Sesión"
+              subtitle="Accede a tu cuenta de TGH Pulseras"
+            />
             
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Ingresa tu contraseña"
-              />
-            </div>
-          </div>
+            <CardBody>
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <Input
+                  id="username"
+                  label="Usuario"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Ingresa tu usuario"
+                />
+                
+                <Input
+                  id="password"
+                  label="Contraseña"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Ingresa tu contraseña"
+                />
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
+                {error && (
+                  <div className="bg-red-50 border-2 border-red-500 text-red-600 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              ¿No tienes cuenta?{' '}
-              <Link href="/activacion" className="font-medium text-primary-600 hover:text-primary-500">
-                Activa tu pulsera aquí
-              </Link>
-            </p>
-          </div>
-        </form>
-        
-        <div className="text-center">
-          <Link 
-            href="/" 
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            ← Volver al inicio
-          </Link>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  isLoading={isLoading}
+                  className="w-full"
+                >
+                  {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                </Button>
+              </form>
+            </CardBody>
+            
+            <CardFooter>
+              <div className="space-y-4">
+                <p className="text-center text-sm text-tgh-navy">
+                  ¿No tienes cuenta?{' '}
+                  <Link href="/activacion" className="link font-medium">
+                    Activa tu pulsera aquí
+                  </Link>
+                </p>
+                
+                <div className="text-center">
+                  <Link 
+                    href="/" 
+                    className="text-sm text-tgh-teal hover:text-tgh-orange transition-colors inline-flex items-center"
+                  >
+                    <svg 
+                      className="w-4 h-4 mr-1" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" 
+                      />
+                    </svg>
+                    Volver al inicio
+                  </Link>
+                </div>
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </div>
-    </div>
+    </>
   )
 }

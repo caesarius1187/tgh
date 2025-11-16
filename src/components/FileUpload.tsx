@@ -21,17 +21,38 @@ export default function FileUpload({
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
-  const [preview, setPreview] = useState<string | null>(currentUrl || null)
+  const [preview, setPreview] = useState<string | null>(null)
   const [success, setSuccess] = useState('')
   const [fileLink, setFileLink] = useState(currentUrl || '')
+  const [isImage, setIsImage] = useState(false)
   const tempObjectUrlRef = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Función para verificar si una URL es una imagen
+  const checkIfImage = (url: string): boolean => {
+    if (!url) return false
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp']
+    const lowerUrl = url.toLowerCase()
+    return imageExtensions.some(ext => lowerUrl.includes(ext))
+  }
 
   useEffect(() => {
     if (tipo === 'foto') {
       setPreview(currentUrl || null)
-    } else {
-      setFileLink(currentUrl || '')
+      setIsImage(true)
+    } else if (tipo === 'certificado_grupo_sanguineo') {
+      if (currentUrl) {
+        const urlIsImage = checkIfImage(currentUrl)
+        setIsImage(urlIsImage)
+        if (urlIsImage) {
+          setPreview(currentUrl)
+        } else {
+          setFileLink(currentUrl)
+        }
+      } else {
+        setIsImage(false)
+        setFileLink('')
+      }
     }
   }, [currentUrl, tipo])
 
@@ -52,20 +73,27 @@ export default function FileUpload({
     setIsUploading(true)
 
     try {
-      // Crear preview
-      if (tipo === 'foto') {
+      // Verificar si el archivo es una imagen
+      const fileIsImage = file.type.startsWith('image/')
+      
+      if (tipo === 'foto' || (tipo === 'certificado_grupo_sanguineo' && fileIsImage)) {
+        // Crear preview para imágenes
+        setIsImage(true)
         const reader = new FileReader()
         reader.onload = (e) => {
           setPreview(e.target?.result as string)
         }
         reader.readAsDataURL(file)
       } else {
+        // Para PDFs, solo guardar el enlace
+        setIsImage(false)
         if (tempObjectUrlRef.current) {
           URL.revokeObjectURL(tempObjectUrlRef.current)
         }
         const objectUrl = URL.createObjectURL(file)
         tempObjectUrlRef.current = objectUrl
         setFileLink(objectUrl)
+        setPreview(null)
       }
 
       await onUpload(file)
@@ -90,7 +118,7 @@ export default function FileUpload({
         <p className="text-sm text-gray-500 mb-4">{description}</p>
         
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
-          {preview && tipo === 'foto' ? (
+          {preview && (tipo === 'foto' || (tipo === 'certificado_grupo_sanguineo' && isImage)) ? (
             <div className="space-y-4">
               <img 
                 src={preview} 
@@ -102,7 +130,7 @@ export default function FileUpload({
                 disabled={isUploading}
                 className="text-sm text-primary-600 hover:text-primary-500 disabled:opacity-50"
               >
-                {isUploading ? 'Subiendo...' : 'Cambiar imagen'}
+                {isUploading ? 'Subiendo...' : 'Cambiar archivo'}
               </button>
             </div>
           ) : (
@@ -136,7 +164,7 @@ export default function FileUpload({
           className="hidden"
         />
 
-        {tipo !== 'foto' && (fileLink || currentUrl) && (
+        {tipo === 'certificado_grupo_sanguineo' && !isImage && (fileLink || currentUrl) && (
           <div className="mt-4 text-sm">
             <a
               href={fileLink || currentUrl}
@@ -144,7 +172,7 @@ export default function FileUpload({
               rel="noopener noreferrer"
               className="text-primary-600 hover:text-primary-500 font-medium"
             >
-              Ver certificado cargado
+              Ver certificado cargado (PDF)
             </a>
             <p className="text-xs text-gray-500 mt-1">
               Se abrirá en una nueva pestaña.

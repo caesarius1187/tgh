@@ -4,6 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import Navbar from '@/components/Navbar'
+import { HexagonalPatternCSS } from '@/components/HexagonalPattern'
+import Card, { CardHeader, CardBody, CardFooter } from '@/components/Card'
+import Input from '@/components/Input'
+import Button from '@/components/Button'
 
 export default function ActivacionPage() {
   const [serial, setSerial] = useState('')
@@ -90,154 +95,182 @@ export default function ActivacionPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            {step === 1 ? 'Activar Pulsera' : 'Crear Cuenta'}
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {step === 1 
-              ? 'Ingresa el serial de tu pulsera NFC para comenzar'
-              : 'Completa tus datos para activar tu pulsera'
-            }
-          </p>
-        </div>
+    <>
+      <Navbar showLogin={true} showLogout={false} />
+      <div className="min-h-screen flex items-center justify-center bg-tgh-teal relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
+        {/* Patrón hexagonal de fondo */}
+        <HexagonalPatternCSS />
+        
+        <div className="max-w-md w-full space-y-8 relative z-10">
+          <Card className="bg-white/95 backdrop-blur-sm">
+            <CardHeader
+              title={step === 1 ? 'Activar Pulsera' : 'Crear Cuenta'}
+              subtitle={
+                step === 1 
+                  ? 'Ingresa el serial de tu pulsera NFC para comenzar'
+                  : 'Completa tus datos para activar tu pulsera'
+              }
+            />
 
-        {step === 1 ? (
-          <div className="space-y-6">
-            <div>
-              <label htmlFor="serial" className="block text-sm font-medium text-gray-700">
-                Serial de la Pulsera
-              </label>
-              <input
-                id="serial"
-                name="serial"
-                type="text"
-                required
-                value={serial}
-                onChange={(e) => setSerial(e.target.value.toUpperCase())}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Ej: TGH001"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                El serial se encuentra en la etiqueta de tu pulsera
-              </p>
-            </div>
+            {step === 1 ? (
+              <CardBody>
+                <div className="space-y-6">
+                  <Input
+                    id="serial"
+                    label="Serial de la Pulsera"
+                    type="text"
+                    required
+                    value={serial}
+                    onChange={(e) => setSerial(e.target.value.toUpperCase())}
+                    placeholder="Ej: TGH001"
+                    helperText="El serial se encuentra en la etiqueta de tu pulsera"
+                  />
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm whitespace-pre-line">
-                {error}
-              </div>
-            )}
+                  {error && (
+                    <div className="bg-red-50 border-2 border-red-500 text-red-600 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
+                      {error}
+                    </div>
+                  )}
 
-            <button
-              onClick={validateSerial}
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Validando...' : 'Validar Serial'}
-            </button>
-          </div>
-        ) : (
-          <form className="mt-8 space-y-6" onSubmit={handleRegister}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Serial Validado
-                </label>
-                <div className="mt-1 px-3 py-2 bg-green-50 border border-green-200 text-green-800 rounded-md text-sm font-medium">
-                  ✅ {serial}
+                  <Button
+                    onClick={validateSerial}
+                    variant="primary"
+                    size="lg"
+                    isLoading={isLoading}
+                    className="w-full"
+                  >
+                    {isLoading ? 'Validando...' : 'Validar Serial'}
+                  </Button>
                 </div>
-              </div>
+              </CardBody>
+            ) : (
+              <CardBody>
+                <form className="space-y-6" onSubmit={handleRegister}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="label">
+                        Serial Validado
+                      </label>
+                      <div className="px-4 py-3 bg-green-50 border-2 border-green-500 text-green-800 rounded-lg text-sm font-medium flex items-center">
+                        <svg 
+                          className="w-5 h-5 mr-2" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                          />
+                        </svg>
+                        {serial}
+                      </div>
+                    </div>
 
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                  Usuario
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                  placeholder="Elige un nombre de usuario"
-                />
-              </div>
+                    <Input
+                      id="username"
+                      label="Usuario"
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Elige un nombre de usuario"
+                    />
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Contraseña
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                  placeholder="Mínimo 8 caracteres"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Debe contener: mayúscula, minúscula, número y carácter especial
-                </p>
-              </div>
+                    <Input
+                      id="password"
+                      label="Contraseña"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Mínimo 8 caracteres"
+                      helperText="Debe contener: mayúscula, minúscula, número y carácter especial"
+                    />
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirmar Contraseña
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                  placeholder="Repite tu contraseña"
-                />
-              </div>
-            </div>
+                    <Input
+                      id="confirmPassword"
+                      label="Confirmar Contraseña"
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repite tu contraseña"
+                    />
+                  </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm whitespace-pre-line">
-                {error}
-              </div>
+                  {error && (
+                    <div className="bg-red-50 border-2 border-red-500 text-red-600 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      isLoading={isLoading}
+                      className="w-full"
+                    >
+                      {isLoading ? 'Creando cuenta...' : 'Activar Pulsera'}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="md"
+                      onClick={() => setStep(1)}
+                      className="w-full"
+                    >
+                      <svg 
+                        className="w-4 h-4 mr-2 inline" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18" 
+                        />
+                      </svg>
+                      Cambiar serial
+                    </Button>
+                  </div>
+                </form>
+              </CardBody>
             )}
 
-            <div className="space-y-3">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Creando cuenta...' : 'Activar Pulsera'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-full text-sm text-gray-500 hover:text-gray-700"
-              >
-                ← Cambiar serial
-              </button>
-            </div>
-          </form>
-        )}
-
-        <div className="text-center">
-          <Link 
-            href="/" 
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            ← Volver al inicio
-          </Link>
+            <CardFooter>
+              <div className="text-center">
+                <Link 
+                  href="/" 
+                  className="text-sm text-tgh-teal hover:text-tgh-orange transition-colors inline-flex items-center"
+                >
+                  <svg 
+                    className="w-4 h-4 mr-1" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18" 
+                    />
+                  </svg>
+                  Volver al inicio
+                </Link>
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </div>
-    </div>
+    </>
   )
 }

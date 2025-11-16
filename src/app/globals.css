@@ -8,40 +8,81 @@
   }
   
   body {
-    @apply text-gray-900 bg-gray-50;
+    @apply text-tgh-navy bg-tgh-gray;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+  
+  h1 {
+    @apply text-tgh-orange;
+  }
+  
+  h2, h3, h4, h5, h6 {
+    @apply text-tgh-teal;
   }
 }
 
 @layer components {
+  /* Botones Corporativos */
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-tgh-orange hover:bg-tgh-gold text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-tgh-gray hover:bg-tgh-gray/80 text-tgh-navy font-medium px-6 py-3 rounded-lg transition-colors duration-200;
   }
   
+  /* Inputs Estilizados */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-3 py-2 border-2 border-tgh-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-tgh-orange focus:border-tgh-orange bg-white text-tgh-navy;
   }
   
+  /* Cards Corporativas */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-lg shadow-lg border-2 border-tgh-teal p-6;
   }
   
+  .card-dark {
+    @apply bg-tgh-teal-dark rounded-lg shadow-lg border-2 border-tgh-teal p-6 text-tgh-gray;
+  }
+  
+  /* Formularios */
   .form-group {
     @apply mb-4;
   }
   
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-2;
+    @apply block text-sm font-medium text-tgh-navy mb-2;
   }
   
+  .label-dark {
+    @apply block text-sm font-medium text-tgh-gray mb-2;
+  }
+  
+  /* Mensajes */
   .error-message {
     @apply text-red-600 text-sm mt-1;
   }
   
   .success-message {
     @apply text-green-600 text-sm mt-1;
+  }
+  
+  /* Enlaces */
+  .link {
+    @apply text-tgh-orange hover:text-tgh-gold transition-colors duration-200 underline;
+  }
+  
+  /* Fondo con patrón hexagonal */
+  .bg-hexagonal {
+    @apply relative overflow-hidden;
+  }
+  
+  .bg-hexagonal::before {
+    content: '';
+    @apply absolute inset-0 opacity-20;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23214F5F' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
 }

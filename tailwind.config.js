@@ -8,6 +8,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        'tgh-teal': '#214F5F',
+        'tgh-teal-dark': '#153041',
+        'tgh-orange': '#E17739',
+        'tgh-navy': '#0C0F1E',
+        'tgh-gray': '#C4C6C8',
+        'tgh-brown': '#6C504C',
+        'tgh-gold': '#FFCB68',
+        // Mantener compatibilidad con código existente
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',

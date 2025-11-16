@@ -20,7 +20,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-tgh-teal">
             {children}
           </div>
         </AuthProvider>

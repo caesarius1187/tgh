@@ -71,7 +71,11 @@ export async function generateMetadata({ params }: NFCPageProps): Promise<Metada
 export default async function NFCPage({ params }: NFCPageProps) {
   const { serial } = params
   
-  const nfcData = await getNFCData(serial)
+  if (!serial || serial.trim() === '') {
+    notFound()
+  }
+  
+  const nfcData = await getNFCData(serial.trim())
   
   if (!nfcData || !nfcData.success) {
     notFound()
