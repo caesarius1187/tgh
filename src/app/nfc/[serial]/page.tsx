@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Phone, User, Heart, FileText, AlertTriangle } from 'lucide-react'
+import { getNFCPublicData } from '@/lib/db-utils'
 
 interface NFCPageProps {
   params: {
@@ -39,18 +40,66 @@ interface NFCData {
   }
 }
 
+// Función helper para calcular edad
+function calcularEdad(fechaNacimiento: string): number {
+  const hoy = new Date()
+  const nacimiento = new Date(fechaNacimiento)
+  let edad = hoy.getFullYear() - nacimiento.getFullYear()
+  const mes = hoy.getMonth() - nacimiento.getMonth()
+  
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--
+  }
+  
+  return edad
+}
+
 async function getNFCData(serial: string): Promise<NFCData | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/nfc-data/${serial}`, {
-      cache: 'no-store' // Siempre obtener datos frescos
-    })
+    // Llamar directamente a la función de base de datos en lugar de hacer fetch HTTP
+    const nfcData = await getNFCPublicData(serial.trim())
     
-    if (!response.ok) {
+    if (!nfcData) {
       return null
     }
     
-    return await response.json()
+    // Preparar respuesta en el mismo formato que la API
+    return {
+      success: true,
+      serial,
+      timestamp: new Date().toISOString(),
+      data: {
+        // Datos personales básicos
+        persona: nfcData.datosPersonales ? {
+          nombre: nfcData.datosPersonales.nombre || '',
+          apellido: nfcData.datosPersonales.apellido || '',
+          edad: nfcData.datosPersonales.fecha_nacimiento ? 
+            calcularEdad(nfcData.datosPersonales.fecha_nacimiento) : null,
+          foto: nfcData.datosPersonales.foto_url,
+          peso: nfcData.datosPersonales.peso,
+          altura: nfcData.datosPersonales.altura
+        } : null,
+        
+        // Información médica vital
+        medica: nfcData.datosVitales ? {
+          grupo_sanguineo: nfcData.datosVitales.grupo_sanguineo,
+          alergias: nfcData.datosVitales.alergias,
+          medicacion: nfcData.datosVitales.medicacion,
+          enfermedades_cronicas: nfcData.datosVitales.enfermedades_cronicas,
+          observaciones: nfcData.datosVitales.observaciones_medicas,
+          certificado_grupo_sanguineo: nfcData.datosVitales.grupo_sanguineo_url
+        } : null,
+        
+        // Contactos de emergencia
+        contactos: nfcData.contactosEmergencia?.map(contacto => ({
+          nombre: contacto.nombre,
+          telefono: contacto.telefono,
+          relacion: contacto.relacion,
+          es_principal: contacto.es_principal,
+          llamada_directa: `tel:${contacto.telefono.replace(/[^0-9+]/g, '')}`
+        })) || []
+      }
+    }
   } catch (error) {
     console.error('Error obteniendo datos NFC:', error)
     return null
