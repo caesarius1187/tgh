@@ -6,7 +6,7 @@ Sistema de gestión de pulseras con chips NFC para emergencias médicas.
 
 - **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **Base de datos**: MySQL
+- **Base de datos**: PostgreSQL (Supabase)
 - **Autenticación**: JWT
 - **Validación**: Zod
 - **Estilos**: Tailwind CSS + Lucide React
@@ -33,42 +33,60 @@ tgh/
 └── package.json
 ```
 
-## 🛠️ Instalación
+## 🛠️ Instalación Rápida
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone [url-del-repo]
-   cd tgh
-   ```
+### Paso 1: Instalar Dependencias
+```bash
+npm install
+```
 
-2. **Instalar dependencias**
-   ```bash
-   npm install
-   ```
+### Paso 2: Iniciar Supabase Local (Recomendado)
+```bash
+# Asegúrate de que Docker Desktop esté corriendo
+supabase start
+```
 
-3. **Configurar variables de entorno**
-   Crea un archivo `.env.local` en la raíz del proyecto (está incluido en `.gitignore`) con las credenciales de tu entorno local. Ejemplo:
-   ```bash
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
+### Paso 3: Configurar Variables de Entorno
+Crea un archivo `.env.local` en la raíz del proyecto con:
 
-   JWT_SECRET=tu_clave_super_secreta
-   JWT_EXPIRES_IN=7d
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-   POSTGRES_HOST=localhost
-   POSTGRES_PORT=3306
-   POSTGRES_USER=root
-  POSTGRES_PASSWORD=tu_password
-   POSTGRES_DATABASE=tgh_pulseras
-   ```
+JWT_SECRET=tu_clave_super_secreta
+JWT_EXPIRES_IN=7d
 
-4. **Configurar base de datos**
-   - Crear base de datos MySQL: `tgh_pulseras`
-   - Ejecutar scripts de la carpeta `Database/`
+# Valores que muestra 'supabase start'
+POSTGRES_URL=postgresql://postgres:postgres@localhost:54322/postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=54322
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DATABASE=postgres
+POSTGRES_SSL=false
+POSTGRES_SSL_REJECT_UNAUTHORIZED=false
 
-5. **Ejecutar en desarrollo**
-   ```bash
-   npm run dev
-   ```
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... # Copia el valor completo de 'supabase start'
+SUPABASE_STORAGE_BUCKET=uploads
+```
+
+### Paso 4: Configurar Base de Datos
+```bash
+# Opción A: Script automático (recomendado)
+node Database/setup_database.js setup
+
+# Opción B: Importar dump completo
+psql "postgresql://postgres:postgres@localhost:54322/postgres" -f Database/exportacionlocalhost.sql
+```
+
+### Paso 5: Iniciar el Proyecto
+```bash
+npm run dev
+```
+
+La aplicación estará disponible en: `http://localhost:3000`
+
+> 📖 **Para una guía detallada paso a paso, consulta [GUIA_INICIO.md](./GUIA_INICIO.md)**
 
 ## 📋 Scripts Disponibles
 
@@ -88,12 +106,16 @@ tgh/
 | `JWT_SECRET`                    | Clave usada para firmar JWT                            | `tu_clave_super_secreta`              | valor aleatorio seguro                    |
 | `JWT_EXPIRES_IN`                | Tiempo de expiración del JWT                           | `7d`                                  | `7d` (o el valor que definas)             |
 | `POSTGRES_HOST`                 | Host del servidor de base de datos                     | `localhost`                           | `db.tu_proveedor.com`                     |
-| `POSTGRES_PORT`                 | Puerto de la base de datos                             | `3306` (o `5432` si es PostgreSQL)    | `3306`/`5432` según tu servicio           |
-| `POSTGRES_USER`                 | Usuario de la base de datos                            | `root`                                | usuario configurado en producción         |
+| `POSTGRES_PORT`                 | Puerto de la base de datos                             | `5432`                                | `5432`                                    |
+| `POSTGRES_USER`                 | Usuario de la base de datos                            | `postgres`                            | usuario configurado en producción         |
 | `POSTGRES_PASSWORD`             | Contraseña de la base de datos                         | `tu_password`                         | contraseña del servicio                   |
 | `POSTGRES_DATABASE`             | Nombre de la base de datos                             | `tgh_pulseras`                        | nombre de la base en producción           |
-| `POSTGRES_URL` (opcional)       | Cadena de conexión completa (si tu proveedor la expone)| `postgres://...` o `mysql://...`      | URL completa del servicio                 |
-| `POSTGRES_URL_NON_POOLING` etc. | Variantes opcionales para poolers / Prisma / Supabase  | —                                     | URL que provea tu proveedor               |
+| `POSTGRES_URL` (opcional)       | Cadena de conexión completa (si tu proveedor la expone)| `postgres://...`                      | URL completa del servicio                 |
+| `POSTGRES_SSL`                  | Forzar conexión con SSL (`true`/`false`)               | `false`                               | `true` o según proveedor                  |
+| `POSTGRES_SSL_REJECT_UNAUTHORIZED` | Rechazar certificados autofirmados (`true`/`false`) | `false`                               | `false` si usas certificados self-signed  |
+| `SUPABASE_URL`                  | Proyecto Supabase (REST/Storage)                       | `http://127.0.0.1:54321`              | `https://xxxx.supabase.co`                |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Clave service role para operaciones server-side        | `clave_local_service_role`            | clave service role de Supabase            |
+| `SUPABASE_STORAGE_BUCKET`       | Bucket de Storage donde se suben archivos              | `uploads`                             | `uploads` (o el nombre que definas)       |
 
 **Local:** crea/edita `.env.local` con los valores anteriores.  
 **Producción (Vercel):** en *Project Settings → Environment Variables* añade las mismas variables pero usando las credenciales de Hostinger. Tras guardarlas vuelve a desplegar (`vercel --prod` o desde el dashboard).

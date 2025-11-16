@@ -3,49 +3,75 @@ import { requireAuth } from '@/lib/auth'
 import { executeQuery, createAuditLog } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 
-// Configuración de archivos
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = {
   foto: ['image/jpeg', 'image/png', 'image/webp'],
   certificado_grupo_sanguineo: ['image/jpeg', 'image/png', 'application/pdf']
 }
-const UPLOAD_DIR = './public/uploads'
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? 'uploads'
+
+let bucketEnsured = false
+
+async function ensureBucketExists() {
+  if (bucketEnsured) return
+
+  const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
+  if (listError) {
+    throw new Error(`No se pudo listar buckets de Supabase: ${listError.message}`)
+  }
+
+  const exists = buckets?.some((bucket) => bucket.name === STORAGE_BUCKET)
+  if (!exists) {
+    const { error: createError } = await supabaseAdmin.storage.createBucket(STORAGE_BUCKET, {
+      public: true
+    })
+
+    if (createError) {
+      throw new Error(`No se pudo crear el bucket ${STORAGE_BUCKET}: ${createError.message}`)
+    }
+  }
+
+  bucketEnsured = true
+}
+
+function buildStoragePath(userId: number, tipo: string, originalName: string) {
+  const timestamp = Date.now()
+  const extension = originalName.includes('.') ? originalName.split('.').pop() : 'dat'
+  const sanitizedExtension = extension?.replace(/[^a-zA-Z0-9]/g, '') || 'dat'
+  const normalizedTipo = tipo.replace(/[^a-zA-Z0-9_-]/g, '')
+  return `usuarios/${userId}/${normalizedTipo}/${timestamp}.${sanitizedExtension}`
+}
 
 export const POST = withCORS(async (request: NextRequest) => {
   try {
-    // Verificar autenticación
     const authResult = requireAuth(request)
-    
+
     if (!authResult.user) {
       return NextResponse.json(
         { error: authResult.error || 'No autorizado' },
         { status: 401 }
       )
     }
-    
+
     const { user } = authResult
     const ip = getClientIP(request)
     const userAgent = request.headers.get('user-agent')
-    
-    // Obtener datos del FormData
+
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    const tipo = formData.get('tipo') as string
-    
+    const file = formData.get('file') as File | null
+    const tipo = formData.get('tipo') as string | null
+
     if (!file || !tipo) {
       return NextResponse.json(
         { error: 'Archivo y tipo son requeridos' },
         { status: 400 }
       )
     }
-    
-    // Validar tipo de archivo
+
     if (!ALLOWED_TYPES[tipo as keyof typeof ALLOWED_TYPES]) {
       await createAuditLog(
         'file_upload_failed',
@@ -55,14 +81,13 @@ export const POST = withCORS(async (request: NextRequest) => {
         userAgent,
         { tipo, reason: 'invalid_type' }
       )
-      
+
       return NextResponse.json(
         { error: 'Tipo de archivo no válido' },
         { status: 400 }
       )
     }
-    
-    // Validar tamaño del archivo
+
     if (file.size > MAX_FILE_SIZE) {
       await createAuditLog(
         'file_upload_failed',
@@ -72,14 +97,13 @@ export const POST = withCORS(async (request: NextRequest) => {
         userAgent,
         { tipo, size: file.size, maxSize: MAX_FILE_SIZE, reason: 'file_too_large' }
       )
-      
+
       return NextResponse.json(
         { error: 'El archivo es demasiado grande. Máximo 5MB' },
         { status: 400 }
       )
     }
-    
-    // Validar tipo MIME
+
     const allowedMimes = ALLOWED_TYPES[tipo as keyof typeof ALLOWED_TYPES]
     if (!allowedMimes.includes(file.type)) {
       await createAuditLog(
@@ -90,33 +114,47 @@ export const POST = withCORS(async (request: NextRequest) => {
         userAgent,
         { tipo, mimeType: file.type, reason: 'invalid_mime_type' }
       )
-      
+
       return NextResponse.json(
         { error: 'Tipo de archivo no permitido' },
         { status: 400 }
       )
     }
-    
-    // Crear directorio de uploads si no existe
-    if (!existsSync(UPLOAD_DIR)) {
-      await mkdir(UPLOAD_DIR, { recursive: true })
-    }
-    
-    // Generar nombre único para el archivo
-    const timestamp = Date.now()
-    const extension = file.name.split('.').pop()
-    const fileName = `${user.userId}_${tipo}_${timestamp}.${extension}`
-    const filePath = join(UPLOAD_DIR, fileName)
-    const fileUrl = `/uploads/${fileName}`
-    
-    // Convertir File a Buffer y guardar
+
+    await ensureBucketExists()
+
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
-    
-    // Actualizar base de datos según el tipo
+    const storagePath = buildStoragePath(user.userId, tipo, file.name)
+
+    const {
+      data: uploadData,
+      error: uploadError
+    } = await supabaseAdmin.storage.from(STORAGE_BUCKET).upload(storagePath, buffer, {
+      contentType: file.type,
+      upsert: true
+    })
+
+    if (uploadError) {
+      throw new Error(`Error subiendo archivo a Supabase Storage: ${uploadError.message}`)
+    }
+
+    if (!uploadData?.path) {
+      throw new Error('No se obtuvo la ruta del archivo subido')
+    }
+
+    const { data: publicData } = supabaseAdmin.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(uploadData.path)
+
+    const fileUrl = publicData?.publicUrl
+
+    if (!fileUrl) {
+      throw new Error('No se pudo obtener la URL pública del archivo')
+    }
+
     let updateRowCount = 0
-    
+
     if (tipo === 'foto') {
       const { rowCount } = await executeQuery(
         'UPDATE datos_personales SET foto_url = $1 WHERE usuario_id = $2',
@@ -130,10 +168,8 @@ export const POST = withCORS(async (request: NextRequest) => {
       )
       updateRowCount = rowCount ?? 0
     }
-    
-    // Verificar que la actualización fue exitosa
+
     if (updateRowCount === 0) {
-      // Si no hay datos personales/vitales, crear el registro
       if (tipo === 'foto') {
         await executeQuery(
           'INSERT INTO datos_personales (usuario_id, nombre, apellido, fecha_nacimiento, foto_url) VALUES ($1, $2, $3, $4, $5)',
@@ -146,38 +182,35 @@ export const POST = withCORS(async (request: NextRequest) => {
         )
       }
     }
-    
-    // Log del upload exitoso
+
     await createAuditLog(
       'file_upload_success',
       `Archivo ${tipo} subido exitosamente`,
       user.userId,
       ip,
       userAgent,
-      { 
-        tipo, 
-        fileName, 
-        fileSize: file.size, 
+      {
+        tipo,
+        storagePath,
+        fileSize: file.size,
         mimeType: file.type,
-        fileUrl 
+        fileUrl
       }
     )
-    
+
     return NextResponse.json({
       success: true,
       message: `Archivo ${tipo} subido exitosamente`,
       file: {
-        name: fileName,
+        path: storagePath,
         url: fileUrl,
         size: file.size,
         type: file.type
       }
     })
-    
   } catch (error) {
     console.error('Error en upload-file:', error)
-    
-    // Log del error
+
     await createAuditLog(
       'file_upload_error',
       'Error interno durante subida de archivo',
@@ -186,7 +219,7 @@ export const POST = withCORS(async (request: NextRequest) => {
       request.headers.get('user-agent'),
       { error: error instanceof Error ? error.message : 'Unknown error' }
     )
-    
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -194,7 +227,6 @@ export const POST = withCORS(async (request: NextRequest) => {
   }
 })
 
-// Manejar otros métodos HTTP
 export const GET = () => {
   return NextResponse.json(
     { error: 'Método no permitido' },
