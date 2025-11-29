@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import { HexagonalPatternCSS } from '@/components/HexagonalPattern'
 import Card, { CardHeader, CardBody } from '@/components/Card'
 import Button from '@/components/Button'
 
@@ -11,10 +10,8 @@ export default function HomePage() {
   return (
     <>
       <Navbar showLogin={true} showLogout={false} />
-      <main className="min-h-screen flex items-center justify-center bg-tgh-teal relative overflow-hidden">
+      <main className="min-h-screen flex items-center justify-center relative overflow-hidden">
         {/* Patrón hexagonal de fondo */}
-        <HexagonalPatternCSS />
-        
         <div className="max-w-md w-full space-y-8 p-8 relative z-10">
           <Card className="bg-white/95 backdrop-blur-sm">
             <CardBody>

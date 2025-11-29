@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import Navbar from '@/components/Navbar'
-import { HexagonalPatternCSS } from '@/components/HexagonalPattern'
 import Card, { CardHeader, CardBody, CardFooter } from '@/components/Card'
 import Input from '@/components/Input'
 import Button from '@/components/Button'
@@ -42,9 +41,8 @@ export default function LoginPage() {
   return (
     <>
       <Navbar showLogin={false} showLogout={false} />
-      <div className="min-h-screen flex items-center justify-center bg-tgh-teal relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
         {/* Patrón hexagonal de fondo */}
-        <HexagonalPatternCSS />
         
         <div className="max-w-md w-full space-y-8 relative z-10">
           <Card className="bg-white/95 backdrop-blur-sm">

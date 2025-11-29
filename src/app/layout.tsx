@@ -20,8 +20,18 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <AuthProvider>
-          <div className="min-h-screen bg-tgh-teal">
-            {children}
+          {/* Imagen de fondo fija arriba a la izquierda - por encima del fondo pero detrás del contenido */}
+          <div 
+            id="background-image"
+          />
+          {/* Imagen de fondo fija abajo a la derecha - por encima del fondo pero detrás del contenido */}
+          <div 
+            id="background-image-bottom"
+          />
+          <div className="min-h-screen relative" style={{ zIndex: 0 }}>
+            <div className="relative" style={{ zIndex: 200 }}>
+              {children}
+            </div>
           </div>
         </AuthProvider>
       </body>

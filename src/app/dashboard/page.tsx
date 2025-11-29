@@ -7,7 +7,6 @@ import FileUpload from '@/components/FileUpload'
 import EditPersonalData from '@/components/EditPersonalData'
 import EditVitalData from '@/components/EditVitalData'
 import Navbar from '@/components/Navbar'
-import { HexagonalPatternCSS } from '@/components/HexagonalPattern'
 import Card, { CardHeader, CardBody } from '@/components/Card'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
@@ -398,8 +397,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center bg-tgh-teal relative overflow-hidden">
-          <HexagonalPatternCSS />
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
           <div className="relative z-10">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-tgh-orange"></div>
           </div>
@@ -410,9 +408,8 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-tgh-teal relative overflow-hidden">
+      <div className="min-h-screen relative overflow-hidden">
         {/* Patrón hexagonal de fondo */}
-        <HexagonalPatternCSS />
         
         {/* Navbar */}
         <Navbar showLogin={false} showLogout={true} />

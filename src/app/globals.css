@@ -8,7 +8,7 @@
   }
   
   body {
-    @apply text-tgh-navy bg-tgh-gray;
+    @apply text-tgh-navy bg-tgh-teal;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -22,6 +22,40 @@
   h2, h3, h4, h5, h6 {
     @apply text-tgh-teal;
   }
+}
+
+/* Imagen de fondo en esquina superior izquierda - visible sobre fondos pero detrás del contenido */
+#background-image {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 400px !important;
+  height: 600px !important;
+  min-width: 100px !important;
+  min-height: 150px !important;
+  background-image: url('/backgroundup.jpeg') !important;
+  background-size: cover !important;
+  background-position: top left !important;
+  background-repeat: no-repeat !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Imagen de fondo en esquina inferior derecha - visible sobre fondos pero detrás del contenido */
+#background-image-bottom {
+  position: fixed !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  width: 400px !important;
+  height: 600px !important;
+  min-width: 200px !important;
+  min-height: 200px !important;
+  background-image: url('/backgrounddown.jpeg') !important;
+  background-size: cover !important;
+  background-position: bottom right !important;
+  background-repeat: no-repeat !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
 }
 
 @layer components {

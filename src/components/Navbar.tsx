@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import React from 'react'
+import { useAuth } from '@/lib/auth-context'
 
 interface NavbarProps {
   showLogin?: boolean
@@ -15,39 +16,18 @@ interface NavbarProps {
  */
 export default function Navbar({ showLogin = true, showLogout = false }: NavbarProps) {
   const router = useRouter()
+  const { logout } = useAuth()
 
   const handleLogout = () => {
-    // Eliminar token del localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token')
-      router.push('/login')
-    }
+    logout()
+    router.push('/login')
   }
 
   return (
-    <nav className="bg-tgh-teal border-b-2 border-tgh-orange shadow-lg">
+    <nav className="">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo TGH */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="flex items-center">
-              {/* Logo TGH - Imagen */}
-              <Image
-                src="/logo.jpeg"
-                alt="TGH Logo"
-                width={40}
-                height={40}
-                className="object-contain"
-                priority
-              />
-              <div className="ml-3">
-                <span className="text-white font-bold text-xl">TGH</span>
-                <div className="text-tgh-gray text-xs">The Golden Hour</div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Navegación */}
+          {/* Navegación izquierda */}
           <div className="flex items-center space-x-4">
             {showLogout && (
               <>
@@ -65,15 +45,19 @@ export default function Navbar({ showLogin = true, showLogout = false }: NavbarP
                 </button>
               </>
             )}
-            {showLogin && !showLogout && (
-              <Link
-                href="/login"
-                className="bg-tgh-orange hover:bg-tgh-gold text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                Iniciar Sesión
-              </Link>
-            )}
           </div>
+
+          {/* Logo TGH a la derecha */}
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.jpeg"
+              alt="TGH Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+              priority
+            />
+          </Link>
         </div>
       </div>
     </nav>
