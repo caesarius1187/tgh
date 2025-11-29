@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import { HexagonalPatternCSS } from '@/components/HexagonalPattern'
 import Card, { CardHeader, CardBody } from '@/components/Card'
@@ -20,12 +21,14 @@ export default function HomePage() {
               <div className="text-center mb-8">
                 {/* Logo TGH */}
                 <div className="flex justify-center mb-6">
-                  <div className="relative">
-                    <div className="bg-tgh-orange rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
-                      <span className="text-white font-bold text-4xl">T</span>
-                    </div>
-                    <div className="absolute -bottom-2 -right-2 bg-tgh-gold rounded-full w-8 h-8 shadow-md"></div>
-                  </div>
+                  <Image
+                    src="/logo.jpeg"
+                    alt="TGH Logo"
+                    width={120}
+                    height={120}
+                    className="object-contain"
+                    priority
+                  />
                 </div>
                 
                 <h1 className="text-4xl font-bold text-tgh-orange mb-2">

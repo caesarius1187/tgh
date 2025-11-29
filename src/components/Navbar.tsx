@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import React from 'react'
 
 interface NavbarProps {
@@ -30,13 +31,15 @@ export default function Navbar({ showLogin = true, showLogout = false }: NavbarP
           {/* Logo TGH */}
           <Link href="/" className="flex items-center space-x-3">
             <div className="flex items-center">
-              {/* Logo TGH */}
-              <div className="relative">
-                <div className="bg-tgh-orange rounded-full w-10 h-10 flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">T</span>
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-tgh-gold rounded-full w-4 h-4"></div>
-              </div>
+              {/* Logo TGH - Imagen */}
+              <Image
+                src="/logo.jpeg"
+                alt="TGH Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+                priority
+              />
               <div className="ml-3">
                 <span className="text-white font-bold text-xl">TGH</span>
                 <div className="text-tgh-gray text-xs">The Golden Hour</div>
@@ -82,19 +85,23 @@ export default function Navbar({ showLogin = true, showLogout = false }: NavbarP
  */
 export function TGHLogo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const sizeClasses = {
-    sm: 'w-8 h-8 text-base',
-    md: 'w-12 h-12 text-xl',
-    lg: 'w-16 h-16 text-2xl',
+    sm: { width: 32, height: 32, text: 'text-base' },
+    md: { width: 48, height: 48, text: 'text-xl' },
+    lg: { width: 64, height: 64, text: 'text-2xl' },
   }
 
+  const sizeConfig = sizeClasses[size]
+
   return (
-    <div className={`flex items-center space-x-2 ${sizeClasses[size]}`}>
-      <div className="relative">
-        <div className="bg-tgh-orange rounded-full w-full h-full flex items-center justify-center">
-          <span className="text-white font-bold">T</span>
-        </div>
-        <div className="absolute -bottom-1 -right-1 bg-tgh-gold rounded-full w-1/4 h-1/4"></div>
-      </div>
+    <div className={`flex items-center space-x-2 ${sizeConfig.text}`}>
+      <Image
+        src="/logo.jpeg"
+        alt="TGH Logo"
+        width={sizeConfig.width}
+        height={sizeConfig.height}
+        className="object-contain"
+        priority
+      />
       <div>
         <span className="text-tgh-teal font-bold">TGH</span>
         <div className="text-tgh-gray text-xs">The Golden Hour</div>
@@ -102,4 +109,5 @@ export function TGHLogo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
     </div>
   )
 }
+
 
