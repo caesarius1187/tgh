@@ -29,8 +29,8 @@
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  width: 400px !important;
-  height: 600px !important;
+  width: 26vw !important;
+  height: 66vh !important;
   min-width: 100px !important;
   min-height: 150px !important;
   background-image: url('/backgroundup.jpeg') !important;
@@ -46,10 +46,10 @@
   position: fixed !important;
   bottom: 0 !important;
   right: 0 !important;
-  width: 400px !important;
-  height: 600px !important;
-  min-width: 200px !important;
-  min-height: 200px !important;
+  width: 26vw !important;
+  height: 66vh !important;
+  min-width: 100px !important;
+  min-height: 150px !important;
   background-image: url('/backgrounddown.jpeg') !important;
   background-size: cover !important;
   background-position: bottom right !important;
