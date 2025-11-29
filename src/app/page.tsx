@@ -10,10 +10,9 @@ export default function HomePage() {
   return (
     <>
       <Navbar showLogin={true} showLogout={false} />
-      <main className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Patrón hexagonal de fondo */}
-        <div className="max-w-md w-full space-y-8 p-8 relative z-10">
-          <Card className="bg-white/95 backdrop-blur-sm">
+      <main className="min-h-screen flex items-center justify-center relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 relative z-10">
+          <Card className="!shadow-none">
             <CardBody>
               <div className="text-center mb-8">
                 {/* Logo TGH */}
@@ -31,10 +30,10 @@ export default function HomePage() {
                 <h1 className="text-4xl font-bold text-tgh-orange mb-2">
                   TGH Pulseras
                 </h1>
-                <p className="text-tgh-teal font-semibold mb-2">
+                <p className="text-white font-semibold mb-2">
                   The Golden Hour
                 </p>
-                <p className="text-tgh-navy text-sm">
+                <p className="text-sm text-white">
                   Sistema de gestión de pulseras con chips NFC para emergencias médicas
                 </p>
               </div>
@@ -42,18 +41,18 @@ export default function HomePage() {
               <div className="space-y-4">
                 <Link href="/activacion" className="block">
                   <Button variant="primary" size="lg" className="w-full">
-                    Activar Pulsera
+                    Activar Dispositivo
                   </Button>
                 </Link>
                 
                 <Link href="/login" className="block">
-                  <Button variant="secondary" size="lg" className="w-full">
+                  <Button variant="secondary" size="lg" className="w-full !bg-white !text-tgh-navy hover:!bg-gray-100">
                     Iniciar Sesión
                   </Button>
                 </Link>
               </div>
               
-              <div className="text-center text-sm text-tgh-navy mt-6 pt-6 border-t border-tgh-teal/30">
+              <div className="text-center text-sm text-white mt-6">
                 <p>¿Necesitas ayuda? Contacta al administrador</p>
               </div>
             </CardBody>

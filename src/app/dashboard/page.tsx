@@ -415,21 +415,6 @@ export default function DashboardPage() {
         <Navbar showLogin={false} showLogout={true} />
         
         <div className="relative z-10">
-          {/* Header */}
-          <header className="bg-tgh-teal-dark border-b-2 border-tgh-orange shadow-lg">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center py-6">
-                <div>
-                  <h1 className="text-3xl font-bold text-tgh-orange">
-                    Dashboard Personal
-                  </h1>
-                  <p className="text-tgh-gray">
-                    Bienvenido, {user?.username}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </header>
 
           {/* Navigation Tabs */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-tgh-teal-dark">

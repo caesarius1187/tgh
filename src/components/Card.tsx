@@ -21,7 +21,7 @@ export default function Card({
   const baseClasses = 'rounded-lg shadow-lg border-2'
   
   const variantClasses = {
-    default: 'bg-white border-tgh-teal text-tgh-navy',
+    default: 'border-tgh-teal text-tgh-navy',
     dark: 'bg-tgh-teal-dark border-tgh-teal text-tgh-gray',
   }
   
@@ -51,13 +51,15 @@ export function CardHeader({
   action?: React.ReactNode
   className?: string
 }) {
+  const isCentered = className.includes('text-center')
+  
   return (
-    <div className={`flex items-start justify-between mb-4 ${className}`}>
-      <div>
+    <div className={`flex items-start ${isCentered ? 'justify-center' : 'justify-between'} mb-4 ${className}`}>
+      <div className={isCentered ? 'w-full text-center' : ''}>
         {title && <h3 className="text-xl font-bold text-tgh-orange">{title}</h3>}
         {subtitle && <p className="text-sm text-tgh-teal mt-1">{subtitle}</p>}
       </div>
-      {action && <div>{action}</div>}
+      {action && !isCentered && <div>{action}</div>}
     </div>
   )
 }

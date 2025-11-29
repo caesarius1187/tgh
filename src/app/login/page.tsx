@@ -42,36 +42,39 @@ export default function LoginPage() {
     <>
       <Navbar showLogin={false} showLogout={false} />
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
-        {/* Patrón hexagonal de fondo */}
-        
         <div className="max-w-md w-full space-y-8 relative z-10">
-          <Card className="bg-white/95 backdrop-blur-sm">
+          <Card className="!shadow-none">
             <CardHeader
               title="Iniciar Sesión"
               subtitle="Accede a tu cuenta de TGH Pulseras"
+              className="text-center [&_p]:text-white"
             />
             
             <CardBody>
               <form className="space-y-6" onSubmit={handleSubmit}>
-                <Input
-                  id="username"
-                  label="Usuario"
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ingresa tu usuario"
-                />
+                <div className="[&_.label]:!text-white">
+                  <Input
+                    id="username"
+                    label="Usuario"
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Ingresa tu usuario"
+                  />
+                </div>
                 
-                <Input
-                  id="password"
-                  label="Contraseña"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ingresa tu contraseña"
-                />
+                <div className="[&_.label]:!text-white">
+                  <Input
+                    id="password"
+                    label="Contraseña"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Ingresa tu contraseña"
+                  />
+                </div>
 
                 {error && (
                   <div className="bg-red-50 border-2 border-red-500 text-red-600 px-4 py-3 rounded-lg text-sm">
@@ -81,21 +84,21 @@ export default function LoginPage() {
 
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant="secondary"
                   size="lg"
                   isLoading={isLoading}
-                  className="w-full"
+                  className="w-full !bg-white !text-tgh-navy hover:!bg-gray-100"
                 >
                   {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </Button>
               </form>
             </CardBody>
             
-            <CardFooter>
+            <CardFooter className="!border-t-0 !pt-0 !mt-0">
               <div className="space-y-4">
-                <p className="text-center text-sm text-tgh-navy">
+                <p className="text-center text-sm text-white">
                   ¿No tienes cuenta?{' '}
-                  <Link href="/activacion" className="link font-medium">
+                  <Link href="/activacion" className="text-tgh-orange hover:text-tgh-gold font-medium transition-colors">
                     Activa tu pulsera aquí
                   </Link>
                 </p>
@@ -103,7 +106,7 @@ export default function LoginPage() {
                 <div className="text-center">
                   <Link 
                     href="/" 
-                    className="text-sm text-tgh-teal hover:text-tgh-orange transition-colors inline-flex items-center"
+                    className="text-sm text-tgh-orange hover:text-tgh-gold transition-colors inline-flex items-center font-medium"
                   >
                     <svg 
                       className="w-4 h-4 mr-1" 

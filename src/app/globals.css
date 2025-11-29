@@ -29,10 +29,12 @@
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  width: 26vw !important;
+  width: 80vw !important;
   height: 66vh !important;
   min-width: 100px !important;
   min-height: 150px !important;
+  max-width: 400px !important;
+  max-height: 600px !important;
   background-image: url('/backgroundup.jpeg') !important;
   background-size: cover !important;
   background-position: top left !important;
@@ -46,10 +48,12 @@
   position: fixed !important;
   bottom: 0 !important;
   right: 0 !important;
-  width: 26vw !important;
-  height: 66vh !important;
+  width: 80vw !important;
+  height: 44vh !important;
   min-width: 100px !important;
   min-height: 150px !important;
+  max-width: 400px !important;
+  max-height: 600px !important;
   background-image: url('/backgrounddown.jpeg') !important;
   background-size: cover !important;
   background-position: bottom right !important;
