@@ -52,73 +52,78 @@ export default function EditPersonalData({ initialData, onSave, onCancel }: Edit
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium !text-white mb-2">
             Nombre
           </label>
           <input
             type="text"
             value={formData.nombre}
             onChange={(e) => handleChange('nombre', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 !text-white placeholder:text-gray-300 bg-transparent"
             required
+            style={{ color: 'white' }}
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium !text-white mb-2">
             Apellido
           </label>
           <input
             type="text"
             value={formData.apellido}
             onChange={(e) => handleChange('apellido', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 !text-white placeholder:text-gray-300 bg-transparent"
             required
+            style={{ color: 'white' }}
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium !text-white mb-2">
             Fecha de Nacimiento
           </label>
           <input
             type="date"
             value={formData.fecha_nacimiento}
             onChange={(e) => handleChange('fecha_nacimiento', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 !text-white bg-transparent"
             required
+            style={{ color: 'white' }}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium !text-white mb-2">
             Teléfono
           </label>
           <input
             type="tel"
             value={formData.telefono}
             onChange={(e) => handleChange('telefono', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 !text-white placeholder:text-gray-300 bg-transparent"
             placeholder="+1234567890"
+            style={{ color: 'white' }}
           />
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium !text-white mb-2">
             Email
           </label>
           <input
             type="email"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 !text-white placeholder:text-gray-300 bg-transparent"
             placeholder="usuario@ejemplo.com"
+            style={{ color: 'white' }}
           />
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+        <div className="bg-red-50 border border-red-200 !text-white px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}

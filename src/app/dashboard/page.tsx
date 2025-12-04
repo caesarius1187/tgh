@@ -12,6 +12,7 @@ import Button from '@/components/Button'
 import Input from '@/components/Input'
 
 interface EmergencyContactForm {
+  id?: number
   nombre: string
   telefono: string
   relacion: string
@@ -108,6 +109,7 @@ export default function DashboardPage() {
   const [editingPersonal, setEditingPersonal] = useState(false)
   const [editingVital, setEditingVital] = useState(false)
   const [isAddingContact, setIsAddingContact] = useState(false)
+  const [editingContactId, setEditingContactId] = useState<number | null>(null)
   const [contactForm, setContactForm] = useState<EmergencyContactForm>({
     nombre: '',
     telefono: '',
@@ -116,6 +118,7 @@ export default function DashboardPage() {
   })
   const [contactError, setContactError] = useState('')
   const [isSavingContact, setIsSavingContact] = useState(false)
+  const [isDeletingContact, setIsDeletingContact] = useState<number | null>(null)
 
   const fetchUserData = useCallback(async () => {
     if (!token) {
@@ -325,6 +328,26 @@ export default function DashboardPage() {
       relacion: '',
       es_principal: makePrincipal
     })
+    setEditingContactId(null)
+  }
+
+  const startEditingContact = (contacto: { id: number; nombre: string; telefono: string; relacion: string; es_principal: boolean }) => {
+    setContactForm({
+      id: contacto.id,
+      nombre: contacto.nombre,
+      telefono: contacto.telefono,
+      relacion: contacto.relacion || '',
+      es_principal: contacto.es_principal
+    })
+    setEditingContactId(contacto.id)
+    setIsAddingContact(false)
+    setContactError('')
+  }
+
+  const cancelEditingContact = () => {
+    resetContactForm()
+    setIsAddingContact(false)
+    setContactError('')
   }
 
   const handleAddEmergencyContact = async (event: React.FormEvent) => {
@@ -353,6 +376,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           tipo: 'contacto',
           datos: {
+            id: contactForm.id || undefined,
             nombre: contactForm.nombre.trim(),
             telefono: contactForm.telefono.trim(),
             relacion: contactForm.relacion.trim(),
@@ -377,6 +401,43 @@ export default function DashboardPage() {
       )
     } finally {
       setIsSavingContact(false)
+    }
+  }
+
+  const handleDeleteContact = async (contactId: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este contacto de emergencia?')) {
+      return
+    }
+
+    setIsDeletingContact(contactId)
+
+    try {
+      const response = await fetch('/api/update-user-data', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tipo: 'contacto',
+          id: contactId
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error?: string }
+        throw new Error(errorData.error || 'No se pudo eliminar el contacto')
+      }
+
+      await fetchUserData()
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error al eliminar el contacto'
+      )
+    } finally {
+      setIsDeletingContact(null)
     }
   }
 
@@ -481,63 +542,68 @@ export default function DashboardPage() {
                     <CardBody>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Nombre
                           </label>
                           <input
                             type="text"
                             value={userData?.personal?.nombre || ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                         
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Apellido
                           </label>
                           <input
                             type="text"
                             value={userData?.personal?.apellido || ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                         
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Fecha de Nacimiento
                           </label>
                           <input
                             type="text"
                             value={userData?.personal?.fecha_nacimiento_display || ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
                             placeholder="DD/MM/YYYY"
+                            style={{ color: 'white' }}
                           />
                         </div>
 
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Teléfono
                           </label>
                           <input
                             type="tel"
                             value={userData?.personal?.telefono || ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Email
                           </label>
                           <input
                             type="email"
                             value={userData?.personal?.email || ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                       </div>
@@ -592,74 +658,80 @@ export default function DashboardPage() {
                     <CardBody>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Grupo Sanguíneo
                           </label>
                           <input
                             type="text"
                             value={userData?.vitales?.grupo_sanguineo || ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
 
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Peso (kg)
                           </label>
                           <input
                             type="text"
                             value={userData?.vitales?.peso ? `${userData.vitales.peso} kg` : ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
 
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Altura (cm)
                           </label>
                           <input
                             type="text"
                             value={userData?.vitales?.altura ? `${userData.vitales.altura} cm` : ''}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                         
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Alergias
                           </label>
                           <textarea
                             value={userData?.vitales?.alergias || ''}
                             rows={3}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy resize-none"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white resize-none"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                         
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Medicamentos
                           </label>
                           <textarea
                             value={userData?.vitales?.medicamentos || ''}
                             rows={3}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy resize-none"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white resize-none"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                         
                         <div>
-                          <label className="label">
+                          <label className="block text-sm font-medium !text-white mb-2">
                             Condiciones Médicas
                           </label>
                           <textarea
                             value={userData?.vitales?.condiciones_medicas || ''}
                             rows={3}
-                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 text-tgh-navy resize-none"
+                            className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg bg-tgh-gray/30 !text-white resize-none"
                             readOnly
+                            style={{ color: 'white' }}
                           />
                         </div>
                       </div>
@@ -701,38 +773,56 @@ export default function DashboardPage() {
                     }
                   />
 
-                  {isAddingContact && (
+                  {(isAddingContact || editingContactId !== null) && (
                     <CardBody>
                       <form
                         onSubmit={handleAddEmergencyContact}
                         className="border-2 border-tgh-teal rounded-lg p-6 bg-tgh-gray/20"
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Input
-                            label="Nombre completo *"
-                            type="text"
-                            value={contactForm.nombre}
-                            onChange={(e) => handleContactFieldChange('nombre', e.target.value)}
-                            placeholder="Ej: Juan Pérez"
-                            required
-                          />
+                          <div className="form-group">
+                            <label className="block text-sm font-medium !text-white mb-2" style={{ color: 'white' }}>
+                              Nombre completo *
+                            </label>
+                            <input
+                              type="text"
+                              value={contactForm.nombre}
+                              onChange={(e) => handleContactFieldChange('nombre', e.target.value)}
+                              placeholder="Ej: Juan Pérez"
+                              required
+                              className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-tgh-orange focus:border-tgh-orange bg-tgh-gray/30 !text-white placeholder:text-gray-300"
+                              style={{ color: 'white' }}
+                            />
+                          </div>
 
-                          <Input
-                            label="Teléfono *"
-                            type="tel"
-                            value={contactForm.telefono}
-                            onChange={(e) => handleContactFieldChange('telefono', e.target.value)}
-                            placeholder="Ej: +54 9 11 5555 5555"
-                            required
-                          />
+                          <div className="form-group">
+                            <label className="block text-sm font-medium !text-white mb-2" style={{ color: 'white' }}>
+                              Teléfono *
+                            </label>
+                            <input
+                              type="tel"
+                              value={contactForm.telefono}
+                              onChange={(e) => handleContactFieldChange('telefono', e.target.value)}
+                              placeholder="Ej: +54 9 11 5555 5555"
+                              required
+                              className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-tgh-orange focus:border-tgh-orange bg-tgh-gray/30 !text-white placeholder:text-gray-300"
+                              style={{ color: 'white' }}
+                            />
+                          </div>
 
-                          <Input
-                            label="Relación"
-                            type="text"
-                            value={contactForm.relacion}
-                            onChange={(e) => handleContactFieldChange('relacion', e.target.value)}
-                            placeholder="Ej: Esposo/a, Padre, Amigo"
-                          />
+                          <div className="form-group">
+                            <label className="block text-sm font-medium !text-white mb-2" style={{ color: 'white' }}>
+                              Relación
+                            </label>
+                            <input
+                              type="text"
+                              value={contactForm.relacion}
+                              onChange={(e) => handleContactFieldChange('relacion', e.target.value)}
+                              placeholder="Ej: Esposo/a, Padre, Amigo"
+                              className="w-full px-3 py-2 border-2 border-tgh-teal rounded-lg focus:outline-none focus:ring-2 focus:ring-tgh-orange focus:border-tgh-orange bg-tgh-gray/30 !text-white placeholder:text-gray-300"
+                              style={{ color: 'white' }}
+                            />
+                          </div>
 
                           <div className="flex items-center space-x-2 pt-6">
                             <input
@@ -744,7 +834,8 @@ export default function DashboardPage() {
                             />
                             <label
                               htmlFor="es_principal"
-                              className="label mb-0 cursor-pointer"
+                              className="block text-sm font-medium !text-white mb-0 cursor-pointer"
+                              style={{ color: 'white' }}
                             >
                               Marcar como contacto principal
                             </label>
@@ -752,7 +843,7 @@ export default function DashboardPage() {
                         </div>
 
                         {contactError && (
-                          <div className="mt-4 bg-red-50 border-2 border-red-500 text-red-600 px-4 py-3 rounded-lg text-sm">
+                          <div className="mt-4 bg-red-50 border-2 border-red-500 !text-white px-4 py-3 rounded-lg text-sm">
                             {contactError}
                           </div>
                         )}
@@ -764,16 +855,12 @@ export default function DashboardPage() {
                             isLoading={isSavingContact}
                             disabled={isSavingContact}
                           >
-                            {isSavingContact ? 'Guardando...' : 'Guardar contacto'}
+                            {isSavingContact ? 'Guardando...' : editingContactId !== null ? 'Actualizar contacto' : 'Guardar contacto'}
                           </Button>
                           <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => {
-                              setIsAddingContact(false)
-                              resetContactForm()
-                              setContactError('')
-                            }}
+                            onClick={cancelEditingContact}
                           >
                             Cancelar
                           </Button>
@@ -782,40 +869,65 @@ export default function DashboardPage() {
                     </CardBody>
                   )}
                   
-                  {userData?.contactos && userData.contactos.length > 0 ? (
-                    <CardBody>
-                      <div className="space-y-4">
-                        {userData.contactos.map((contacto) => (
-                          <div key={contacto.id} className="border-2 border-tgh-teal rounded-lg p-4 bg-tgh-gray/20">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="flex items-center space-x-2 mb-2">
-                                  <h3 className="font-medium text-tgh-navy">{contacto.nombre}</h3>
-                                  {contacto.es_principal && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 border border-green-500">
-                                      Principal
-                                    </span>
-                                  )}
+                  {!isAddingContact && editingContactId === null && (
+                    <>
+                      {userData?.contactos && userData.contactos.length > 0 ? (
+                        <CardBody>
+                          <div className="space-y-4">
+                            {userData.contactos.map((contacto) => (
+                              <div key={contacto.id} className="border-2 border-tgh-teal rounded-lg p-4 bg-tgh-gray/20">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <h3 className="font-medium !text-white" style={{ color: 'white' }}>{contacto.nombre}</h3>
+                                      {contacto.es_principal && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 border border-green-500">
+                                          Principal
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm !text-white mb-2" style={{ color: 'white' }}>{contacto.relacion}</p>
+                                    <a 
+                                      href={`tel:${contacto.telefono}`}
+                                      className="link text-sm font-medium"
+                                    >
+                                      📞 {contacto.telefono}
+                                    </a>
+                                  </div>
+                                  <div className="flex space-x-2 ml-4">
+                                    <Button
+                                      type="button"
+                                      variant="primary"
+                                      size="sm"
+                                      onClick={() => startEditingContact(contacto)}
+                                      disabled={isDeletingContact === contacto.id}
+                                    >
+                                      ✏️ Editar
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      size="sm"
+                                      onClick={() => handleDeleteContact(contacto.id)}
+                                      disabled={isDeletingContact === contacto.id}
+                                      isLoading={isDeletingContact === contacto.id}
+                                    >
+                                      🗑️ Eliminar
+                                    </Button>
+                                  </div>
                                 </div>
-                                <p className="text-sm text-tgh-teal mb-2">{contacto.relacion}</p>
-                                <a 
-                                  href={`tel:${contacto.telefono}`}
-                                  className="link text-sm font-medium"
-                                >
-                                  📞 {contacto.telefono}
-                                </a>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </CardBody>
-                  ) : (
-                    <CardBody>
-                      <p className="text-tgh-teal text-center py-8">
-                        No hay contactos de emergencia registrados
-                      </p>
-                    </CardBody>
+                        </CardBody>
+                      ) : (
+                        <CardBody>
+                          <p className="!text-white text-center py-8" style={{ color: 'white' }}>
+                            No hay contactos de emergencia registrados
+                          </p>
+                        </CardBody>
+                      )}
+                    </>
                   )}
                 </Card>
               )}
@@ -853,13 +965,13 @@ export default function DashboardPage() {
                         )}
                       </div>
                       
-                      <div className="text-sm text-tgh-navy">
+                      <div className="text-sm !text-white">
                         {serial ? (
-                          <p>Serial: <span className="font-mono font-medium text-tgh-teal">{serial}</span></p>
+                          <p className="!text-white" style={{ color: 'white' }}>Serial: <span className="font-mono font-medium text-tgh-teal">{serial}</span></p>
                         ) : (
-                          <p className="text-gray-500">No hay serial disponible</p>
+                          <p className="!text-white" style={{ color: 'white' }}>No hay serial disponible</p>
                         )}
-                        <p className="mt-2">
+                        <p className="mt-2 !text-white" style={{ color: 'white' }}>
                           Esta información es accesible públicamente para emergencias médicas
                         </p>
                       </div>

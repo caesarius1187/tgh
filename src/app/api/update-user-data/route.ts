@@ -248,9 +248,77 @@ export const POST = () => {
   )
 }
 
-export const DELETE = () => {
-  return NextResponse.json(
-    { error: 'Método no permitido' },
-    { status: 405 }
-  )
-}
+export const DELETE = withCORS(async (request: NextRequest) => {
+  try {
+    // Verificar autenticación
+    const authResult = requireAuth(request)
+    
+    if (!authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || 'No autorizado' },
+        { status: 401 }
+      )
+    }
+
+    const user = authResult.user
+    const body = await request.json() as { tipo?: string; id?: number }
+    const { tipo, id } = body
+
+    if (!tipo || !id) {
+      return NextResponse.json(
+        { error: 'Tipo e ID son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    const ip = getClientIP(request)
+    const userAgent = request.headers.get('user-agent') || 'Unknown'
+
+    if (tipo === 'contacto') {
+      // Verificar que el contacto pertenece al usuario
+      const { rows: contactRows } = await executeQuery<IdRow>(
+        'SELECT id FROM contactos_emergencia WHERE id = $1 AND usuario_id = $2',
+        [id, user.userId]
+      )
+
+      if (contactRows.length === 0) {
+        return NextResponse.json(
+          { error: 'Contacto no encontrado o no autorizado' },
+          { status: 404 }
+        )
+      }
+
+      // Eliminar el contacto
+      await executeQuery(
+        'DELETE FROM contactos_emergencia WHERE id = $1 AND usuario_id = $2',
+        [id, user.userId]
+      )
+
+      // Log de la eliminación
+      await createAuditLog(
+        'user_data_deleted',
+        `Contacto de emergencia eliminado: ID ${id}`,
+        user.userId,
+        ip,
+        userAgent,
+        { tipo, id }
+      )
+
+      return NextResponse.json({
+        success: true,
+        message: 'Contacto eliminado exitosamente'
+      })
+    } else {
+      return NextResponse.json(
+        { error: 'Tipo de datos no válido para eliminación' },
+        { status: 400 }
+      )
+    }
+  } catch (error) {
+    console.error('Error en DELETE update-user-data:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+})
