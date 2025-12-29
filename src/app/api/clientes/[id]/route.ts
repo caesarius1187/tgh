@@ -3,6 +3,8 @@ import { withCORS } from '@/lib/cors'
 import { requireAuth } from '@/lib/auth'
 import { executeQuery } from '@/lib/database'
 
+type QueryValueLocal = string | number | boolean | Date | Buffer | null | undefined
+
 export const runtime = 'nodejs'
 
 export const GET = withCORS(async (request: NextRequest, { params }: { params: { id: string } }) => {
@@ -80,7 +82,7 @@ export const PATCH = withCORS(async (request: NextRequest, { params }: { params:
     }
 
     const setClause = entries.map(([k], idx) => `${k} = $${idx + 1}`).join(', ')
-    const values = entries.map(([, v]) => v)
+    const values = entries.map(([, v]) => v) as QueryValueLocal[]
 
     await executeQuery(
       `UPDATE clientes SET ${setClause}, actualizado_en = NOW() WHERE id = $${values.length + 1}`,
