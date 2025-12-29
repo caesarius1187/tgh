@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withCORS } from '@/lib/cors'
 import { executeQuery } from '@/lib/database'
 
+type QueryValueLocal = string | number | boolean | Date | Buffer | null | undefined
+
 const requireAdmin = (req: NextRequest): string | null => {
   const key = req.headers.get('x-admin-key')
   if (!process.env.ADMIN_API_KEY) return 'ADMIN_API_KEY no configurado'
@@ -34,7 +36,7 @@ export const PATCH = withCORS(async (request: NextRequest, { params }: { params:
     }
 
     const setClause = entries.map(([k], idx) => `${k} = $${idx + 1}`).join(', ')
-    const values = entries.map(([, v]) => v)
+    const values = entries.map(([, v]) => v) as QueryValueLocal[]
 
     await executeQuery(
       `UPDATE clientes SET ${setClause}, actualizado_en = NOW() WHERE id = $${values.length + 1}`,
