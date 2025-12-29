@@ -1,7 +1,8 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Phone, User, Heart, FileText, AlertTriangle } from 'lucide-react'
-import { getNFCPublicData } from '@/lib/db-utils'
+import { getNFCPublicData, getPulseraLinkStatus } from '@/lib/db-utils'
+import ClaimForm from './ClaimForm'
 
 interface NFCPageProps {
   params: {
@@ -124,13 +125,19 @@ export default async function NFCPage({ params }: NFCPageProps) {
     notFound()
   }
   
-  const nfcData = await getNFCData(serial.trim())
-  
-  if (!nfcData || !nfcData.success) {
+  const trimmedSerial = serial.trim()
+
+  // Estado de la pulsera (existencia, activación y vínculo)
+  const pulseraStatus = await getPulseraLinkStatus(trimmedSerial)
+  if (!pulseraStatus || !pulseraStatus.exists) {
     notFound()
   }
-  
-  const { persona, medica, contactos } = nfcData.data
+
+  // Intentar obtener datos públicos (si hay usuario vinculado y visibilidad lo permite)
+  const nfcData = await getNFCData(trimmedSerial)
+  const persona = nfcData?.data.persona || null
+  const medica = nfcData?.data.medica || null
+  const contactos = nfcData?.data.contactos || []
   
   return (
     <div className="min-h-screen bg-red-50 p-4">
@@ -141,9 +148,23 @@ export default async function NFCPage({ params }: NFCPageProps) {
           <h1 className="text-xl font-bold">INFORMACIÓN DE EMERGENCIA</h1>
           <p className="text-sm opacity-90">Pulsera TGH - {serial}</p>
         </div>
-        
+
+        {/* Caso: pulsera sin usuario vinculado => mostrar CTA/registro */}
+        {!pulseraStatus.hasUser && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border border-yellow-300">
+            <div className="mb-3">
+              <h2 className="text-lg font-semibold text-gray-800">Activa tu cuenta</h2>
+              <p className="text-sm text-gray-600">
+                Eres el portador de esta pulsera. Crea tu cuenta para vincularla y completar tus datos.
+              </p>
+            </div>
+            <ClaimForm serial={trimmedSerial} />
+          </div>
+        )}
+
+        {/* Caso: ya vinculado y con datos públicos disponibles */}
         {/* Información personal */}
-        {persona && (
+        {pulseraStatus.hasUser && persona && (
           <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
             <div className="flex items-center mb-3">
               <User className="w-5 h-5 text-blue-600 mr-2" />
@@ -191,7 +212,7 @@ export default async function NFCPage({ params }: NFCPageProps) {
         )}
         
         {/* Información médica */}
-        {medica && (
+        {pulseraStatus.hasUser && medica && (
           <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
             <div className="flex items-center mb-3">
               <Heart className="w-5 h-5 text-red-600 mr-2" />
@@ -254,7 +275,7 @@ export default async function NFCPage({ params }: NFCPageProps) {
         )}
         
         {/* Contactos de emergencia */}
-        {contactos.length > 0 && (
+        {pulseraStatus.hasUser && contactos.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
             <div className="flex items-center mb-3">
               <Phone className="w-5 h-5 text-green-600 mr-2" />
@@ -303,11 +324,24 @@ export default async function NFCPage({ params }: NFCPageProps) {
             </div>
           </div>
         )}
+
+        {/* Caso: pulsera vinculada pero sin visibilidad pública */}
+        {pulseraStatus.hasUser && !persona && !medica && contactos.length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border">
+            <div className="flex items-center mb-2">
+              <AlertTriangle className="w-5 h-5 text-gray-600 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-800">Perfil no disponible</h2>
+            </div>
+            <p className="text-sm text-gray-600">
+              La información de esta pulsera no es pública para este solicitante.
+            </p>
+          </div>
+        )}
         
         {/* Footer */}
         <div className="text-center text-sm text-gray-500 mt-6">
           <p>Sistema TGH Pulseras</p>
-          <p>Última actualización: {new Date(nfcData.timestamp).toLocaleString()}</p>
+          <p>Última actualización: {new Date().toLocaleString()}</p>
         </div>
       </div>
     </div>

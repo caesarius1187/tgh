@@ -27,7 +27,18 @@ export default function LoginPage() {
       const success = await login(username, password)
       
       if (success) {
-        router.push('/dashboard')
+        try {
+          const stored = localStorage.getItem('tgh_user')
+          const parsed = stored ? JSON.parse(stored) : null
+          const rol = parsed?.rol as string | undefined
+          if (rol === 'admin_sistema') {
+            router.push('/admin/clientes')
+          } else {
+            router.push('/dashboard')
+          }
+        } catch {
+          router.push('/dashboard')
+        }
       } else {
         setError('Credenciales incorrectas. Intenta nuevamente.')
       }

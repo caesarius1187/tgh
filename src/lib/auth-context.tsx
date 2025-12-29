@@ -5,6 +5,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface User {
   id: number
   username: string
+  rol: 'admin_sistema' | 'portador' | 'lector'
+  idCliente?: number | null
   serial?: string
 }
 
@@ -14,6 +16,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>
   logout: () => void
   register: (username: string, password: string, serial: string, confirmPassword: string) => Promise<{ success: boolean; error?: string; details?: string[] }>
+  claim: (username: string, password: string, serial: string, confirmPassword: string) => Promise<{ success: boolean; error?: string; details?: string[] }>
+  registerReader: (username: string, password: string, confirmPassword: string) => Promise<{ success: boolean; error?: string; details?: string[] }>
   isLoading: boolean
   isAuthenticated: boolean
 }
@@ -104,6 +108,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const claim = async (username: string, password: string, serial: string, confirmPassword: string): Promise<{ success: boolean; error?: string; details?: string[] }> => {
+    try {
+      const response = await fetch('/api/claim-pulsera', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password, serial, confirmPassword }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setToken(data.token)
+        setUser(data.user)
+        
+        // Guardar en localStorage
+        localStorage.setItem('tgh_token', data.token)
+        localStorage.setItem('tgh_user', JSON.stringify(data.user))
+        
+        return { success: true }
+      } else {
+        const errorData = await response.json()
+        return { 
+          success: false, 
+          error: errorData.error || 'Error en el registro',
+          details: errorData.details || []
+        }
+      }
+    } catch (error) {
+      console.error('Error en claim:', error)
+      return { 
+        success: false, 
+        error: 'Error de conexión. Intenta nuevamente.',
+        details: []
+      }
+    }
+  }
+
+  const registerReader = async (username: string, password: string, confirmPassword: string): Promise<{ success: boolean; error?: string; details?: string[] }> => {
+    try {
+      const response = await fetch('/api/register-lector', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password, confirmPassword }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setToken(data.token)
+        setUser(data.user)
+        
+        // Guardar en localStorage
+        localStorage.setItem('tgh_token', data.token)
+        localStorage.setItem('tgh_user', JSON.stringify(data.user))
+        
+        return { success: true }
+      } else {
+        const errorData = await response.json()
+        return { 
+          success: false, 
+          error: errorData.error || 'Error en el registro',
+          details: errorData.details || []
+        }
+      }
+    } catch (error) {
+      console.error('Error en registro lector:', error)
+      return { 
+        success: false, 
+        error: 'Error de conexión. Intenta nuevamente.',
+        details: []
+      }
+    }
+  }
+
   const logout = () => {
     setUser(null)
     setToken(null)
@@ -117,6 +197,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     register,
+    claim,
+    registerReader,
     isLoading,
     isAuthenticated: !!user && !!token,
   }

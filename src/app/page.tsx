@@ -44,6 +44,12 @@ export default function HomePage() {
                     Activar Dispositivo
                   </Button>
                 </Link>
+
+                <Link href="/registro" className="block">
+                  <Button variant="primary" size="lg" className="w-full !bg-tgh-gold !text-tgh-navy hover:!bg-yellow-400">
+                    Crear Cuenta
+                  </Button>
+                </Link>
                 
                 <Link href="/login" className="block">
                   <Button variant="secondary" size="lg" className="w-full !bg-white !text-tgh-navy hover:!bg-gray-100">

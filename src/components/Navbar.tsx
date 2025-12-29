@@ -16,7 +16,7 @@ interface NavbarProps {
  */
 export default function Navbar({ showLogin = true, showLogout = false }: NavbarProps) {
   const router = useRouter()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
 
   const handleLogout = () => {
     logout()
@@ -31,12 +31,35 @@ export default function Navbar({ showLogin = true, showLogout = false }: NavbarP
           <div className="flex items-center space-x-4">
             {showLogout && (
               <>
-                <Link
-                  href="/dashboard"
-                  className="text-tgh-gray hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Dashboard
-                </Link>
+                {user?.rol === 'admin_sistema' ? (
+                  <>
+                    <Link
+                      href="/admin/clientes"
+                      className="text-tgh-gray hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Clientes
+                    </Link>
+                    <Link
+                      href="/admin/usuarios"
+                      className="text-tgh-gray hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Usuarios
+                    </Link>
+                    <Link
+                      href="/admin/pulseras"
+                      className="text-tgh-gray hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Pulseras
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href="/dashboard"
+                    className="text-tgh-gray hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="bg-tgh-orange hover:bg-tgh-gold text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"

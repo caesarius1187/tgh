@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getNFCPublicData, createAuditLog } from '@/lib/db-utils'
+import { getNFCPublicData, createAuditLog, getUserClientId } from '@/lib/db-utils'
 import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 export const GET = withCORS(async (
   request: NextRequest,
@@ -29,8 +30,12 @@ export const GET = withCORS(async (
       )
     }
     
-    // Obtener datos públicos para NFC
-    const nfcData = await getNFCPublicData(serial.trim())
+    // Determinar si el solicitante pertenece a algún cliente
+    const authUser = getAuthenticatedUser(request)
+    const requesterClientId = authUser ? await getUserClientId(authUser.userId) : null
+
+    // Obtener datos NFC con control de visibilidad
+    const nfcData = await getNFCPublicData(serial.trim(), requesterClientId)
     
     if (!nfcData) {
       await createAuditLog(
@@ -42,12 +47,13 @@ export const GET = withCORS(async (
         { serial, reason: 'serial_not_found_or_inactive' }
       )
       
+      // Puede ser serial inexistente/inactivo o acceso denegado por privacidad
       return NextResponse.json(
         { 
-          error: 'Pulsera no encontrada o no activada',
-          message: 'Esta pulsera no está registrada en el sistema o no ha sido activada'
+          error: 'Acceso no disponible',
+          message: 'Pulsera no encontrada/activa o el perfil es privado para este solicitante'
         },
-        { status: 404 }
+        { status: 403 }
       )
     }
     

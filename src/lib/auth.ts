@@ -20,6 +20,8 @@ const accessTokenOptions: SignOptions = {
 export interface JWTPayload {
   userId: number
   username: string
+  rol: 'admin_sistema' | 'portador' | 'lector'
+  idCliente?: number | null
   iat?: number
   exp?: number
 }

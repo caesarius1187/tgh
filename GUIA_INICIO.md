@@ -22,7 +22,7 @@ Si usas Supabase localmente, inicia los contenedores:
 
 ```bash
 # Asegúrate de que Docker Desktop esté corriendo
-supabase start
+npx supabase start
 ```
 
 Esto iniciará:

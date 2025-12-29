@@ -11,7 +11,9 @@ const protectedRoutes = [
 
 // Rutas que requieren autenticación de admin
 const adminRoutes = [
-  '/api/admin'
+  '/api/admin',
+  '/api/clientes',
+  '/api/pulseras'
 ]
 
 // Rutas públicas (no requieren autenticación)
@@ -58,8 +60,8 @@ export function middleware(request: NextRequest) {
       }
     }
     
-    // Verificar si es ruta de admin (futura implementación)
-    if (isAdminRoute && user.username !== 'admin') {
+    // Verificar si es ruta de admin
+    if (isAdminRoute && user.rol !== 'admin_sistema') {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
           { error: 'Permisos de administrador requeridos' },

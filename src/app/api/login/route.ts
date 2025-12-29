@@ -131,10 +131,12 @@ export const POST = withCORS(async (request: NextRequest) => {
     // Login exitoso
     clearLoginAttempts(ip, username)
     
-    // Generar token JWT
+    // Generar token JWT con rol e id_cliente
     const token = generateToken({
       userId: user.id,
-      username: user.username
+      username: user.username,
+      rol: user.rol,
+      idCliente: user.id_cliente ?? null
     })
     
     // Actualizar último login
@@ -178,6 +180,8 @@ export const POST = withCORS(async (request: NextRequest) => {
       user: {
         id: user.id,
         username: user.username,
+        rol: user.rol,
+        idCliente: user.id_cliente ?? null,
         serial: serial,
         lastLogin: user.last_login
       }

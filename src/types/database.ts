@@ -13,6 +13,7 @@ export interface Pulsera {
   serial: string
   is_active: boolean
   public_url: string | null
+  id_cliente?: number | null
   created_at: Date
   updated_at: Date
 }
@@ -22,6 +23,8 @@ export interface Usuario {
   username: string
   password_hash: string
   pulsera_id: number | null
+  rol: 'admin_sistema' | 'portador' | 'lector'
+  id_cliente?: number | null
   is_active: boolean
   last_login: Date | null
   created_at: Date
@@ -92,17 +95,40 @@ export interface SesionUsuario {
   created_at: Date
 }
 
+export interface Cliente {
+  id: number
+  nombre_legal: string
+  nombre_publico: string
+  slug: string
+  id_fiscal: string | null
+  contacto_email: string | null
+  telefono: string | null
+  direccion_linea1: string | null
+  direccion_linea2: string | null
+  direccion_ciudad: string | null
+  direccion_provincia: string | null
+  direccion_pais: string | null
+  direccion_cp: string | null
+  visibilidad: 'publico' | 'privado'
+  estado: 'activo' | 'suspendido'
+  creado_en: Date
+  actualizado_en: Date
+}
+
 // Tipos para creación (sin campos auto-generados)
 export interface CreatePulsera {
   serial: string
   is_active?: boolean
   public_url?: string | null
+  id_cliente?: number | null
 }
 
 export interface CreateUsuario {
   username: string
   password_hash: string
   pulsera_id?: number | null
+  rol?: 'admin_sistema' | 'portador' | 'lector'
+  id_cliente?: number | null
   is_active?: boolean
 }
 
@@ -142,12 +168,15 @@ export interface CreateContactoEmergencia {
 export interface UpdatePulsera {
   is_active?: boolean
   public_url?: string | null
+  id_cliente?: number | null
 }
 
 export interface UpdateUsuario {
   username?: string
   password_hash?: string
   pulsera_id?: number | null
+  rol?: 'admin_sistema' | 'portador' | 'lector'
+  id_cliente?: number | null
   is_active?: boolean
   last_login?: Date | null
 }

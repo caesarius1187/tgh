@@ -130,6 +130,22 @@ export const checkUsernameExists = async (username: string): Promise<boolean> =>
 }
 
 /**
+ * Obtener id_cliente del usuario
+ */
+export const getUserClientId = async (userId: number): Promise<number | null> => {
+  try {
+    const { rows } = await executeQuery<{ id_cliente: number | null }>(
+      'SELECT id_cliente FROM usuarios WHERE id = $1',
+      [userId]
+    )
+    return rows[0]?.id_cliente ?? null
+  } catch (error) {
+    console.error('Error obteniendo id_cliente del usuario:', error)
+    return null
+  }
+}
+
+/**
  * Obtener usuario por username
  */
 export const getUserByUsername = async (username: string): Promise<Usuario | null> => {
@@ -199,9 +215,14 @@ export const getUserCompleteData = async (userId: number): Promise<UserCompleteD
 /**
  * Obtener datos públicos para NFC por serial
  */
-export const getNFCPublicData = async (serial: string): Promise<NFCPublicData | null> => {
+export const getNFCPublicData = async (
+  serial: string,
+  authorizedClientId?: number | null
+): Promise<NFCPublicData | null> => {
   try {
-    const { rows } = await executeQuery<NFCPublicDataRow>(
+    const { rows } = await executeQuery<
+      NFCPublicDataRow & { cliente_id: number | null; cliente_visibilidad: string | null }
+    >(
       `
       SELECT 
         dp.nombre,
@@ -219,12 +240,15 @@ export const getNFCPublicData = async (serial: string): Promise<NFCPublicData | 
         ce.telefono AS contacto_telefono,
         ce.relacion AS contacto_relacion,
         ce.es_principal,
-        dv.grupo_sanguineo_url
+        dv.grupo_sanguineo_url,
+        COALESCE(u.id_cliente, p.id_cliente) AS cliente_id,
+        c.visibilidad AS cliente_visibilidad
       FROM pulseras p
       JOIN usuarios u ON p.id = u.pulsera_id
       LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
       LEFT JOIN datos_vitales dv ON u.id = dv.usuario_id
       LEFT JOIN contactos_emergencia ce ON u.id = ce.usuario_id AND ce.is_active = TRUE
+      LEFT JOIN clientes c ON c.id = COALESCE(u.id_cliente, p.id_cliente)
       WHERE p.serial = $1 AND p.is_active = TRUE AND u.is_active = TRUE
       ORDER BY ce.es_principal DESC NULLS LAST, ce.orden
     `,
@@ -235,7 +259,21 @@ export const getNFCPublicData = async (serial: string): Promise<NFCPublicData | 
       return null
     }
 
-    const userData = rows[0]
+    const userData = rows[0] as (NFCPublicDataRow & {
+      cliente_id: number | null
+      cliente_visibilidad: string | null
+    })
+
+    // Control de visibilidad por cliente
+    const clienteId = userData.cliente_id
+    const clienteVis = (userData.cliente_visibilidad || '').toLowerCase()
+
+    if (clienteId !== null && clienteVis === 'privado') {
+      if (!authorizedClientId || authorizedClientId !== clienteId) {
+        return null
+      }
+    }
+
     const contacts = rows
       .filter(row => Boolean(row.contacto_nombre))
       .map(row => ({
@@ -335,6 +373,64 @@ export const getDatabaseStats = async (): Promise<DatabaseStatsRow | null> => {
     return rows[0] ?? null
   } catch (error) {
     console.error('Error obteniendo estadísticas:', error)
+    return null
+  }
+}
+
+/**
+ * Obtener estado de una pulsera por serial:
+ * - exists: si la pulsera existe
+ * - isActive: si está activa
+ * - hasUser: si ya está vinculada a un usuario
+ * - idCliente: cliente asociado (si existe)
+ * - visibilidadCliente: visibilidad del cliente (si existe)
+ */
+export const getPulseraLinkStatus = async (
+  serial: string
+): Promise<{
+  exists: boolean
+  isActive: boolean
+  hasUser: boolean
+  idCliente: number | null
+  visibilidadCliente: string | null
+} | null> => {
+  try {
+    const { rows } = await executeQuery<{
+      id: number
+      is_active: boolean
+      id_cliente: number | null
+      user_id: number | null
+      visibilidad: string | null
+    }>(
+      `
+      SELECT 
+        p.id,
+        p.is_active,
+        p.id_cliente,
+        u.id AS user_id,
+        c.visibilidad
+      FROM pulseras p
+      LEFT JOIN usuarios u ON u.pulsera_id = p.id AND u.is_active = TRUE
+      LEFT JOIN clientes c ON c.id = p.id_cliente
+      WHERE p.serial = $1
+      `,
+      [serial]
+    )
+
+    if (!rows.length) {
+      return { exists: false, isActive: false, hasUser: false, idCliente: null, visibilidadCliente: null }
+    }
+
+    const row = rows[0]
+    return {
+      exists: true,
+      isActive: Boolean(row.is_active),
+      hasUser: row.user_id !== null,
+      idCliente: row.id_cliente ?? null,
+      visibilidadCliente: row.visibilidad ?? null
+    }
+  } catch (error) {
+    console.error('Error obteniendo estado de pulsera por serial:', error)
     return null
   }
 }
