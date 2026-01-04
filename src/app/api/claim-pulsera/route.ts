@@ -178,3 +178,4 @@ export const PUT = () => NextResponse.json({ error: 'Método no permitido' }, { 
 export const DELETE = () => NextResponse.json({ error: 'Método no permitido' }, { status: 405 })
 
 
+
