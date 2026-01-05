@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withCORS } from '@/lib/cors'
 import { executeQuery } from '@/lib/database'
 
+export const runtime = 'nodejs'
+
 const requireAdmin = (req: NextRequest): string | null => {
   const key = req.headers.get('x-admin-key')
   if (!process.env.ADMIN_API_KEY) return 'ADMIN_API_KEY no configurado'

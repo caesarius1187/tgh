@@ -4,6 +4,8 @@ import { getClientIP } from '@/lib/security'
 import { withCORS } from '@/lib/cors'
 import { getAuthenticatedUser } from '@/lib/auth'
 
+export const runtime = 'nodejs'
+
 export const GET = withCORS(async (
   request: NextRequest,
   { params }: { params: { serial: string } }
